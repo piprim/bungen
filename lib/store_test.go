@@ -364,4 +364,30 @@ func Test_store_Columns(t *testing.T) {
 			return
 		}
 	})
+
+	t.Run("Should detect PK and FK flags for selected tables only", func(t *testing.T) {
+		columns, err := store.Columns([]table{{Schema: "public", Name: "users"}})
+		if err != nil {
+			t.Errorf("get columns error = %v", err)
+			return
+		}
+
+		flags := map[string][2]bool{}
+		for _, c := range columns {
+			if c.Table != "users" {
+				t.Errorf("unexpected table %q in columns of users", c.Table)
+			}
+			flags[c.Name] = [2]bool{c.IsPK, c.IsFK}
+		}
+
+		if got := flags["userId"]; got != [2]bool{true, false} {
+			t.Errorf("users.userId (is_pk, is_fk) = %v, want %v", got, [2]bool{true, false})
+		}
+		if got := flags["countryId"]; got != [2]bool{false, true} {
+			t.Errorf("users.countryId (is_pk, is_fk) = %v, want %v", got, [2]bool{false, true})
+		}
+		if got := flags["email"]; got != [2]bool{false, false} {
+			t.Errorf("users.email (is_pk, is_fk) = %v, want %v", got, [2]bool{false, false})
+		}
+	})
 }

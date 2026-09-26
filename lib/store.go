@@ -230,6 +230,7 @@ func (s store) Columns(tables []table) ([]column, error) {
 						limit 1
 					)) as constraint_types
 				from information_schema.key_column_usage kcu
+				where (kcu.table_schema, kcu.table_name) in (?)
 				group by kcu.table_schema, kcu.table_name, kcu.column_name
 		    )
 		select distinct c.table_schema = 'public' as is_public,
@@ -265,7 +266,7 @@ func (s store) Columns(tables []table) ([]column, error) {
 	`
 
 	var columns []column
-	err := s.db.NewRaw(query, bun.In(ts)).Scan(context.Background(), &columns)
+	err := s.db.NewRaw(query, bun.In(ts), bun.In(ts)).Scan(context.Background(), &columns)
 	if err != nil {
 		return nil, fmt.Errorf("getting columns info error: %w", err)
 	}
