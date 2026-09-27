@@ -4,11 +4,13 @@ import (
 	"log"
 	"os"
 	"testing"
+
+	"github.com/LdDl/bungen/internal/testdb"
 )
 
 func prepareReq() (url string, logger *log.Logger) {
 	logger = log.New(os.Stderr, "", log.LstdFlags)
-	url = `postgres://some_user:some_password@localhost:5432/some_db?sslmode=disable`
+	url = testdb.DSN()
 
 	return
 }

@@ -1,8 +1,8 @@
 package named
 
 import (
+	"github.com/LdDl/bungen/internal/testdb"
 	"io/ioutil"
-	"os"
 	"path"
 	"runtime"
 	"testing"
@@ -13,8 +13,8 @@ func TestGenerator_Generate(t *testing.T) {
 	options := generator.Options()
 
 	options.Def()
-	options.URL = `postgres://some_user:some_password@localhost:5432/some_db?sslmode=disable`
-	options.Output = path.Join(os.TempDir(), "model_test.go")
+	options.URL = testdb.DSN()
+	options.Output = path.Join(t.TempDir(), "model_test.go")
 	options.FollowFKs = true
 
 	generator.SetOptions(options)

@@ -2,11 +2,11 @@ package model
 
 import (
 	"io/ioutil"
-	"os"
 	"path"
 	"runtime"
 	"testing"
 
+	"github.com/LdDl/bungen/internal/testdb"
 	"github.com/LdDl/bungen/model"
 )
 
@@ -14,8 +14,8 @@ func TestGenerator_Generate(t *testing.T) {
 	generator := New()
 
 	generator.options.Def()
-	generator.options.URL = `postgres://some_user:some_password@localhost:5432/some_db?sslmode=disable`
-	generator.options.Output = path.Join(os.TempDir(), "model_test.go")
+	generator.options.URL = testdb.DSN()
+	generator.options.Output = path.Join(t.TempDir(), "model_test.go")
 	generator.options.FollowFKs = true
 	generator.options.GenORM = true
 	generator.options.DBWrapName = "MyCustomWrapper"

@@ -30,6 +30,24 @@ Currently bungen support 3 generators:
 
 Examples located in each generator
  
+### Tests
+
+Tests need a PostgreSQL database loaded with `test_db.sql`. By default they start
+a disposable `postgres:17-alpine` container with [Testcontainers](https://golang.testcontainers.org/),
+so a running Docker daemon is all that is required:
+
+```shell
+go test ./...
+```
+
+Without Docker, point the tests at an existing database that already has
+`test_db.sql` loaded:
+
+```shell
+psql "postgres://some_user:some_password@localhost:5432/some_db?sslmode=disable" -f test_db.sql
+BUNGEN_TEST_DSN="postgres://some_user:some_password@localhost:5432/some_db?sslmode=disable" go test ./...
+```
+
 ## Thanks
 - I am thankful to [Genna](https://github.com/dizzyfool/genna#genna---cli-tool-for-generating-go-pg-models) and its creator [@dizzyfool](https://github.com/dizzyfool). Its [contributors](https://github.com/dizzyfool/genna/graphs/contributors) should be mentioned also. This CLI saved a lot of time for me in the past.
 - Big shoutouts to [Bun](https://github.com/uptrace/bun#sql-first-golang-orm-for-postgresql-mysql-mssql-and-sqlite) creators for great ORM package for Golang
