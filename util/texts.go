@@ -1,6 +1,7 @@
 package util
 
 import (
+	"path/filepath"
 	"regexp"
 	"strings"
 	"unicode"
@@ -108,6 +109,23 @@ func Sanitize(s string) string {
 // PackageName gets string usable as package name
 func PackageName(s string) string {
 	return strings.ToLower(Sanitize(s))
+}
+
+// PackageFromOutput derives a package name from the folder holding the output file.
+// A bare file name resolves to the current working directory. When no usable
+// name can be derived (for example the file system root), DefaultPackage is used.
+func PackageFromOutput(output string) string {
+	abs, err := filepath.Abs(output)
+	if err != nil {
+		return DefaultPackage
+	}
+
+	pkg := PackageName(filepath.Base(filepath.Dir(abs)))
+	if pkg == "" {
+		return DefaultPackage
+	}
+
+	return pkg
 }
 
 // EntityName gets string usable as struct name

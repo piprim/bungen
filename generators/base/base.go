@@ -6,7 +6,6 @@ import (
 	"html/template"
 	"log"
 	"os"
-	"path"
 	"strings"
 
 	bungen "github.com/LdDl/bungen/lib"
@@ -153,7 +152,7 @@ func ReadFlags(command *cobra.Command) (conn, output, pkg string, tables []strin
 	}
 
 	if strings.Trim(pkg, " ") == "" {
-		pkg = path.Base(path.Dir(output))
+		pkg = util.PackageFromOutput(output)
 	}
 
 	if tables, err = flags.GetStringSlice(Tables); err != nil {
@@ -219,7 +218,7 @@ func (g Generator) GenerateFromEntities(entities []model.Entity, output, tmpl st
 		if !saved {
 			return fmt.Errorf("saving file error: %w", err)
 		}
-		log.Printf("formatting file %s error: %s", output, err)
+		return fmt.Errorf("formatting file %s error: %w (unformatted file kept for inspection)", output, err)
 	}
 
 	log.Printf("successfully generated %d models", len(entities))
@@ -244,12 +243,12 @@ func CreateCommand(name, description string, generator Gen) *cobra.Command {
 
 			if err := generator.ReadFlags(command); err != nil {
 				log.Printf("read flags error: %s", err)
-				return
+				os.Exit(1)
 			}
 
 			if err := generator.Generate(); err != nil {
 				log.Printf("generate error: %s", err)
-				return
+				os.Exit(1)
 			}
 		},
 		FParseErrWhitelist: cobra.FParseErrWhitelist{

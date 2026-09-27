@@ -1,6 +1,8 @@
 package util
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -488,6 +490,58 @@ func TestLowerFirst(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := LowerFirst(tt.s); got != tt.want {
 				t.Errorf("LowerFirst() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestPackageFromOutput(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("getwd error = %v", err)
+	}
+	cwdPackage := PackageName(filepath.Base(cwd))
+
+	tests := []struct {
+		name   string
+		output string
+		want   string
+	}{
+		{
+			name:   "Should use parent folder name",
+			output: "models/models.go",
+			want:   "models",
+		},
+		{
+			name:   "Should use nested parent folder name",
+			output: "/some/where/deep/entities/models.go",
+			want:   "entities",
+		},
+		{
+			name:   "Should sanitize folder name",
+			output: "my-models.v2/models.go",
+			want:   "my_modelsv2",
+		},
+		{
+			name:   "Should use current directory name for bare file name",
+			output: "models.go",
+			want:   cwdPackage,
+		},
+		{
+			name:   "Should use current directory name for dot-relative file name",
+			output: "./models.go",
+			want:   cwdPackage,
+		},
+		{
+			name:   "Should fall back to default package for file system root",
+			output: "/models.go",
+			want:   DefaultPackage,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := PackageFromOutput(tt.output); got != tt.want {
+				t.Errorf("PackageFromOutput(%q) = %q, want %q", tt.output, got, tt.want)
 			}
 		})
 	}
