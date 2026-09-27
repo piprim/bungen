@@ -217,21 +217,23 @@ func (s store) Columns(tables []table) ([]column, error) {
 		        where col.attndims > 0
 		    ),
 		    info as (
-				select distinct
-				 	kcu.table_schema as table_schema,
-					kcu.table_name   as table_name,
-					kcu.column_name  as column_name,
-					array_agg((
-						select constraint_type::text 
-						from information_schema.table_constraints tc 
-						where tc.constraint_name = kcu.constraint_name 
-							and tc.constraint_schema = kcu.constraint_schema 
-							and tc.constraint_catalog = kcu.constraint_catalog
-						limit 1
-					)) as constraint_types
-				from information_schema.key_column_usage kcu
-				where (kcu.table_schema, kcu.table_name) in (?)
-				group by kcu.table_schema, kcu.table_name, kcu.column_name
+		        select ns.nspname  as table_schema,
+		               cl.relname  as table_name,
+		               att.attname as column_name,
+		               array_agg(
+		                   case con.contype
+		                   when 'p' then 'PRIMARY KEY'
+		                   when 'f' then 'FOREIGN KEY'
+		                   when 'u' then 'UNIQUE'
+		                   end
+		               ) as constraint_types
+		        from pg_constraint con
+		        inner join pg_class cl on cl.oid = con.conrelid
+		        inner join pg_namespace ns on ns.oid = cl.relnamespace
+		        inner join pg_attribute att on att.attrelid = cl.oid and att.attnum = any (con.conkey)
+		        where con.contype in ('p', 'f', 'u')
+		          and (ns.nspname, cl.relname) in (?)
+		        group by 1, 2, 3
 		    )
 		select distinct c.table_schema = 'public' as is_public,
                         c.table_schema            as schema_name,
