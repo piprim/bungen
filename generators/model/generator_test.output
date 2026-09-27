@@ -1,4 +1,4 @@
-//nolint
+//nolint:all
 //lint:file-ignore U1000 ignore unused code, it's generated
 package model
 
@@ -168,4 +168,3 @@ func (dbConn *MyCustomWrapper) SelectGeoCountry() ([]*GeoCountry, error) {
 		Scan(ctx)
 	return model, err
 }
-

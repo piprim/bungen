@@ -1,6 +1,6 @@
 package model
 
-const Template = `//nolint
+const Template = `//nolint:all
 //lint:file-ignore U1000 ignore unused code, it's generated
 package {{.Package}}{{if .HasImports}}
 
