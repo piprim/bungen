@@ -26,6 +26,11 @@ type Column struct {
 
 	IsPK bool
 	IsFK bool
+
+	// Default is the column's DEFAULT expression as reported by PostgreSQL, empty when none
+	Default string
+	// IsIdentity is true for GENERATED ... AS IDENTITY columns
+	IsIdentity bool
 	// Relation *Relation
 	Relation *columnRelWrap
 

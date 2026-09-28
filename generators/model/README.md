@@ -6,40 +6,48 @@ Use `model` sub-command to execute generator:
 
 First create your database and tables in it
 
-```bun
-create table "projects"
-(
-    "projectId" serial not null,
-    "name"      text   not null,
+```sql
+create extension if not exists "uuid-ossp";
 
-    primary key ("projectId")
+create table "project"
+(
+    "project_id" uuid not null default uuid_generate_v4(),
+    "code"       uuid,
+    "name"       text not null,
+
+    primary key ("project_id")
 );
 
-create table "users"
+create table "user"
 (
-    "userId"    serial      not null,
-    "email"     varchar(64) not null,
-    "activated" bool        not null default false,
-    "name"      varchar(128),
-    "countryId" integer,
+    "user_id"    serial      not null,
+    "email"      varchar(64) not null,
+    "activated"  bool        not null default false,
+    "name"       varchar(128),
+    "country_id" integer,
+    "avatar"     bytea       not null,
+    "avatar_alt" bytea,
+    "api_keys"   bytea[],
+    "logged_at"  timestamp,
 
-    primary key ("userId")
+    primary key ("user_id")
 );
 
 create schema "geo";
-create table geo."countries"
-(
-    "countryId" serial     not null,
-    "code"      varchar(3) not null,
-    "coords"    integer[],
 
-    primary key ("countryId")
+create table geo."country"
+(
+    "country_id" integer generated always as identity,
+    "code"       varchar(3) not null,
+    "coords"     integer[],
+
+    primary key ("country_id")
 );
 
-alter table "users"
+alter table "user"
     add constraint "fk_user_country"
-        foreign key ("countryId")
-            references geo."countries" ("countryId") on update restrict on delete restrict;
+        foreign key ("country_id")
+            references geo."country" ("country_id") on update restrict on delete restrict;
 ```
 
 ### Run generator
@@ -49,51 +57,62 @@ alter table "users"
 You should get following models on model package:
 
 ```go
+//nolint:all
 //lint:file-ignore U1000 ignore unused code, it's generated
-package model
+package readme
 
-var Columns = struct { 
-	Project struct{ 
-		ID, Name string
+import (
+	"github.com/uptrace/bun"
+	"time"
+)
+
+var Columns = struct {
+	Project struct {
+		ID, Code, Name string
 	}
-	User struct{ 
-		ID, Email, Activated, Name, CountryID string
+	User struct {
+		ID, Email, Activated, Name, CountryID, Avatar, AvatarAlt, ApiKeys, LoggedAt string
 
 		Country string
 	}
-	GeoCountry struct{ 
+	GeoCountry struct {
 		ID, Code, Coords string
 	}
-}{ 
-	Project: struct { 
-		ID, Name string
-	}{ 
-		ID: "projectId",
+}{
+	Project: struct {
+		ID, Code, Name string
+	}{
+		ID:   "project_id",
+		Code: "code",
 		Name: "name",
 	},
-	User: struct { 
-		ID, Email, Activated, Name, CountryID string
+	User: struct {
+		ID, Email, Activated, Name, CountryID, Avatar, AvatarAlt, ApiKeys, LoggedAt string
 
 		Country string
-	}{ 
-		ID: "userId",
-		Email: "email",
+	}{
+		ID:        "user_id",
+		Email:     "email",
 		Activated: "activated",
-		Name: "name",
-		CountryID: "countryId",
-		
+		Name:      "name",
+		CountryID: "country_id",
+		Avatar:    "avatar",
+		AvatarAlt: "avatar_alt",
+		ApiKeys:   "api_keys",
+		LoggedAt:  "logged_at",
+
 		Country: "Country",
 	},
-	GeoCountry: struct { 
+	GeoCountry: struct {
 		ID, Code, Coords string
-	}{ 
-		ID: "countryId",
-		Code: "code",
+	}{
+		ID:     "country_id",
+		Code:   "code",
 		Coords: "coords",
 	},
 }
 
-var Tables = struct { 
+var Tables = struct {
 	Project struct {
 		Name, Alias string
 	}
@@ -103,55 +122,62 @@ var Tables = struct {
 	GeoCountry struct {
 		Name, Alias string
 	}
-}{ 
+}{
 	Project: struct {
 		Name, Alias string
-	}{ 
-		Name: "projects",
+	}{
+		Name:  "project",
 		Alias: "t",
 	},
 	User: struct {
 		Name, Alias string
-	}{ 
-		Name: "users",
+	}{
+		Name:  "user",
 		Alias: "t",
 	},
 	GeoCountry: struct {
 		Name, Alias string
-	}{ 
-		Name: "geo.countries",
+	}{
+		Name:  "geo.country",
 		Alias: "t",
 	},
 }
 
 type Project struct {
-	bun.BaseModel `bun:"projects,alias:t"`
-	
-	ID int `bun:"projectId,pk"` 
-	Name string `bun:"name,nullzero"` 
+	bun.BaseModel `bun:"table:project,alias:t"`
+
+	ID   string  `bun:"project_id,pk,type:uuid,default:uuid_generate_v4()"`
+	Code *string `bun:"code,type:uuid"`
+	Name string  `bun:"name,notnull"`
 }
 
 type User struct {
-	bun.BaseModel `bun:"users,alias:t"`
-	
-	ID int `bun:"userId,pk"` 
-	Email string `bun:"email,nullzero"` 
-	Activated bool `bun:"activated,nullzero"` 
-	Name *string `bun:"name"` 
-	CountryID *int `bun:"countryId"` 
-	
-	Country *GeoCountry `bun:"join:countryId=countryId,rel:belongs-to"` 
+	bun.BaseModel `bun:"table:user,alias:t"`
+
+	ID        int        `bun:"user_id,pk,autoincrement"`
+	Email     string     `bun:"email,notnull"`
+	Activated bool       `bun:"activated,notnull,default:false"`
+	Name      *string    `bun:"name"`
+	CountryID *int       `bun:"country_id"`
+	Avatar    []byte     `bun:"avatar,notnull"`
+	AvatarAlt []byte     `bun:"avatar_alt"`
+	ApiKeys   [][]byte   `bun:"api_keys,array"`
+	LoggedAt  *time.Time `bun:"logged_at"`
+
+	Country *GeoCountry `bun:"join:country_id=country_id,rel:belongs-to"`
 }
 
 type GeoCountry struct {
-	bun.BaseModel `bun:"geo.countries,alias:t"`
-	
-	ID int `bun:"countryId,pk"` 
-	Code string `bun:"code,nullzero"` 
-	Coords []int `bun:"coords,array"` 
+	bun.BaseModel `bun:"table:geo.country,alias:t"`
+
+	ID     int    `bun:"country_id,pk,autoincrement,identity"`
+	Code   string `bun:"code,notnull"`
+	Coords []int  `bun:"coords,array"`
 }
 
+/* Common ORM queries */
 
+// Just a wrapper around database connection
 ```
 
 ### Try it
@@ -174,7 +200,7 @@ func TestModel(t *testing.T) {
 	pgdb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN("postgres://user:password@localhost:5432/yourdb")))
 	db := bun.NewDB(pgdb, pgdialect.New(), bun.WithDiscardUnknownColumns())
 
-	if _, err := db.Exec(`truncate table users; truncate table geo.countries cascade;`); err != nil {
+	if _, err := db.Exec(`truncate table "user"; truncate table geo.country cascade;`); err != nil {
 		panic(err)
 	}
 
@@ -214,7 +240,7 @@ func TestModel(t *testing.T) {
 
 	// inserting
 	ctx = context.Background()
-	if _, err := db.NewInsert().Model(&newUser).Column("email", "activated", "countryId").Exec(ctx); err != nil {
+	if _, err := db.NewInsert().Model(&newUser).Column("email", "activated", "country_id").Exec(ctx); err != nil {
 		panic(err)
 	}
 

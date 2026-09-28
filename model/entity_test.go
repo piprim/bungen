@@ -20,7 +20,7 @@ func TestTable_GoName(t *testing.T) {
 		{
 			name:   "Should generate from simple word",
 			fields: fields{Name: "users"},
-			want:   "User",
+			want:   "Users",
 		},
 		{
 			name:   "Should generate from non-countable",
@@ -30,17 +30,17 @@ func TestTable_GoName(t *testing.T) {
 		{
 			name:   "Should generate from underscored",
 			fields: fields{Name: "user_orders"},
-			want:   "UserOrder",
+			want:   "UserOrders",
 		},
 		{
 			name:   "Should generate from camelCased",
 			fields: fields{Name: "userOrders"},
-			want:   "UserOrder",
+			want:   "UserOrders",
 		},
 		{
 			name:   "Should generate from plural in last place",
 			fields: fields{Name: "usersWithOrders"},
-			want:   "UsersWithOrder",
+			want:   "UsersWithOrders",
 		},
 		{
 			name:   "Should generate from abracadabra",
@@ -51,13 +51,13 @@ func TestTable_GoName(t *testing.T) {
 			name:       "Should generate from simple word with public schema",
 			fields:     fields{Name: "users", Schema: "public"},
 			withSchema: true,
-			want:       "User",
+			want:       "Users",
 		},
 		{
 			name:       "Should generate from simple word with custom schema",
 			fields:     fields{Name: "users", Schema: "users"},
 			withSchema: true,
-			want:       "UsersUser",
+			want:       "UsersUsers",
 		},
 	}
 	for _, tt := range tests {

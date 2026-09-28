@@ -3,7 +3,9 @@
 package model
 
 import (
+	"context"
 	"github.com/google/uuid"
+	"github.com/uptrace/bun"
 	"time"
 )
 
@@ -23,7 +25,7 @@ var Columns = struct {
 	Project: struct {
 		ID, Code, Name string
 	}{
-		ID:   "projectId",
+		ID:   "project_id",
 		Code: "code",
 		Name: "name",
 	},
@@ -32,22 +34,22 @@ var Columns = struct {
 
 		Country string
 	}{
-		ID:        "userId",
+		ID:        "user_id",
 		Email:     "email",
 		Activated: "activated",
 		Name:      "name",
-		CountryID: "countryId",
+		CountryID: "country_id",
 		Avatar:    "avatar",
-		AvatarAlt: "avatarAlt",
-		ApiKeys:   "apiKeys",
-		LoggedAt:  "loggedAt",
+		AvatarAlt: "avatar_alt",
+		ApiKeys:   "api_keys",
+		LoggedAt:  "logged_at",
 
 		Country: "Country",
 	},
 	GeoCountry: struct {
 		ID, Code, Coords string
 	}{
-		ID:     "countryId",
+		ID:     "country_id",
 		Code:   "code",
 		Coords: "coords",
 	},
@@ -67,52 +69,52 @@ var Tables = struct {
 	Project: struct {
 		Name, Alias string
 	}{
-		Name:  "projects",
+		Name:  "project",
 		Alias: "t",
 	},
 	User: struct {
 		Name, Alias string
 	}{
-		Name:  "users",
+		Name:  "user",
 		Alias: "t",
 	},
 	GeoCountry: struct {
 		Name, Alias string
 	}{
-		Name:  "geo.countries",
+		Name:  "geo.country",
 		Alias: "t",
 	},
 }
 
 type Project struct {
-	bun.BaseModel `bun:"projects,alias:t"`
+	bun.BaseModel `bun:"table:project,alias:t"`
 
-	ID   uuid.UUID  `bun:"projectId,pk,type:uuid"`
+	ID   uuid.UUID  `bun:"project_id,pk,type:uuid,default:uuid_generate_v4()"`
 	Code *uuid.UUID `bun:"code,type:uuid"`
-	Name string     `bun:"name,nullzero"`
+	Name string     `bun:"name,notnull"`
 }
 
 type User struct {
-	bun.BaseModel `bun:"users,alias:t"`
+	bun.BaseModel `bun:"table:user,alias:t"`
 
-	ID        int        `bun:"userId,pk"`
-	Email     string     `bun:"email,nullzero"`
-	Activated bool       `bun:"activated,nullzero"`
+	ID        int        `bun:"user_id,pk,autoincrement"`
+	Email     string     `bun:"email,notnull"`
+	Activated bool       `bun:"activated,notnull,default:false"`
 	Name      *string    `bun:"name"`
-	CountryID *int       `bun:"countryId"`
-	Avatar    []byte     `bun:"avatar,nullzero"`
-	AvatarAlt []byte     `bun:"avatarAlt"`
-	ApiKeys   [][]byte   `bun:"apiKeys,array"`
-	LoggedAt  *time.Time `bun:"loggedAt"`
+	CountryID *int       `bun:"country_id"`
+	Avatar    []byte     `bun:"avatar,notnull"`
+	AvatarAlt []byte     `bun:"avatar_alt"`
+	ApiKeys   [][]byte   `bun:"api_keys,array"`
+	LoggedAt  *time.Time `bun:"logged_at"`
 
-	Country *GeoCountry `bun:"join:countryId=countryId,rel:belongs-to"`
+	Country *GeoCountry `bun:"join:country_id=country_id,rel:belongs-to"`
 }
 
 type GeoCountry struct {
-	bun.BaseModel `bun:"geo.countries,alias:t"`
+	bun.BaseModel `bun:"table:geo.country,alias:t"`
 
-	ID     int    `bun:"countryId,pk"`
-	Code   string `bun:"code,nullzero"`
+	ID     int    `bun:"country_id,pk,autoincrement,identity"`
+	Code   string `bun:"code,notnull"`
 	Coords []int  `bun:"coords,array"`
 }
 
@@ -129,7 +131,7 @@ func (dbConn *MyCustomWrapper) SelectProject() ([]*Project, error) {
 	model := []*Project{}
 
 	err := dbConn.NewSelect().
-		Column("t.projectId").
+		Column("t.project_id").
 		Column("t.code").
 		Column("t.name").
 		Model(&model).
@@ -142,15 +144,15 @@ func (dbConn *MyCustomWrapper) SelectUser() ([]*User, error) {
 	model := []*User{}
 
 	err := dbConn.NewSelect().
-		Column("t.userId").
+		Column("t.user_id").
 		Column("t.email").
 		Column("t.activated").
 		Column("t.name").
-		Column("t.countryId").
+		Column("t.country_id").
 		Column("t.avatar").
-		Column("t.avatarAlt").
-		Column("t.apiKeys").
-		Column("t.loggedAt").
+		Column("t.avatar_alt").
+		Column("t.api_keys").
+		Column("t.logged_at").
 		Model(&model).
 		Scan(ctx)
 	return model, err
@@ -161,7 +163,7 @@ func (dbConn *MyCustomWrapper) SelectGeoCountry() ([]*GeoCountry, error) {
 	model := []*GeoCountry{}
 
 	err := dbConn.NewSelect().
-		Column("t.countryId").
+		Column("t.country_id").
 		Column("t.code").
 		Column("t.coords").
 		Model(&model).

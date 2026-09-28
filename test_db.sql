@@ -5,42 +5,42 @@ create schema "public";
 
 create extension if not exists "uuid-ossp";
 
-create table "projects"
+create table "project"
 (
-    "projectId" uuid   not null default uuid_generate_v4(),
-    "code"      uuid,
-    "name"      text   not null,
+    "project_id" uuid not null default uuid_generate_v4(),
+    "code"       uuid,
+    "name"       text not null,
 
-    primary key ("projectId")
+    primary key ("project_id")
 );
 
-create table "users"
+create table "user"
 (
-    "userId"    serial      not null,
-    "email"     varchar(64) not null,
-    "activated" bool        not null default false,
-    "name"      varchar(128),
-    "countryId" integer,
-    "avatar"    bytea       not null,
-    "avatarAlt" bytea,
-    "apiKeys"   bytea[],
-    "loggedAt"  timestamp,
+    "user_id"    serial      not null,
+    "email"      varchar(64) not null,
+    "activated"  bool        not null default false,
+    "name"       varchar(128),
+    "country_id" integer,
+    "avatar"     bytea       not null,
+    "avatar_alt" bytea,
+    "api_keys"   bytea[],
+    "logged_at"  timestamp,
 
-    primary key ("userId")
+    primary key ("user_id")
 );
 
 create schema "geo";
 
-create table geo."countries"
+create table geo."country"
 (
-    "countryId" serial     not null,
-    "code"      varchar(3) not null,
-    "coords"    integer[],
+    "country_id" integer generated always as identity,
+    "code"       varchar(3) not null,
+    "coords"     integer[],
 
-    primary key ("countryId")
+    primary key ("country_id")
 );
 
-alter table "users"
+alter table "user"
     add constraint "fk_user_country"
-        foreign key ("countryId")
-            references geo."countries" ("countryId") on update restrict on delete restrict;
+        foreign key ("country_id")
+            references geo."country" ("country_id") on update restrict on delete restrict;

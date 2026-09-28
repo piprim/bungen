@@ -2,6 +2,7 @@ package validate
 
 import (
 	"io/ioutil"
+	"os"
 	"path"
 	"runtime"
 	"testing"
@@ -30,7 +31,13 @@ func TestGenerator_Generate(t *testing.T) {
 	}
 
 	_, filename, _, _ := runtime.Caller(0)
-	check, err := ioutil.ReadFile(path.Join(path.Dir(filename), "generator_test.output"))
+	checkPath := path.Join(path.Dir(filename), "generator_test.output")
+	if os.Getenv("BUNGEN_UPDATE_GOLDEN") != "" {
+		if err := ioutil.WriteFile(checkPath, generated, 0o644); err != nil {
+			t.Fatalf("update golden file = %v", err)
+		}
+	}
+	check, err := ioutil.ReadFile(checkPath)
 	if err != nil {
 		t.Errorf("check file not found = %v", err)
 	}

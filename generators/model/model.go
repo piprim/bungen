@@ -25,6 +25,10 @@ type TemplatePackage struct {
 // NewTemplatePackage creates a package for template
 func NewTemplatePackage(entities []model.Entity, options Options) TemplatePackage {
 	imports := util.NewSet()
+	imports.Add("github.com/uptrace/bun")
+	if options.GenORM {
+		imports.Add("context")
+	}
 
 	models := make([]TemplateEntity, len(entities))
 	for i, entity := range entities {
@@ -88,7 +92,7 @@ func NewTemplateEntity(entity model.Entity, options Options) TemplateEntity {
 
 	tagName := tagName(options)
 	tags := util.NewAnnotation()
-	tags.AddTag(tagName, entity.PGFullName)
+	tags.AddTag(tagName, "table:"+entity.PGFullName)
 
 	if !options.NoAlias {
 		tags.AddTag(tagName, fmt.Sprintf("alias:%s", util.DefaultAlias))
@@ -153,14 +157,28 @@ func NewTemplateColumn(entity model.Entity, column model.Column, options Options
 		tags.AddTag(tagName, "type:uuid")
 	}
 
-	// nullable tag
+	// nullable tag: bun inserts zero values as is, so NOT NULL columns only need notnull
 	if !column.Nullable && !column.IsPK {
-		tags.AddTag(tagName, "nullzero")
+		tags.AddTag(tagName, "notnull")
+	}
+
+	// default tag: autoincrement makes bun send DEFAULT for a zero value, which
+	// serial and identity columns both need; identity additionally documents
+	// the column as GENERATED AS IDENTITY. Any other default is passed through
+	// when the struct tag can carry it.
+	switch {
+	case column.IsIdentity:
+		tags.AddTag(tagName, "autoincrement")
+		tags.AddTag(tagName, "identity")
+	case strings.HasPrefix(column.Default, "nextval("):
+		tags.AddTag(tagName, "autoincrement")
+	case column.Default != "" && tagSafeDefault(column.Default):
+		tags.AddTag(tagName, "default:"+column.Default)
 	}
 
 	// soft_delete tag
 	if options.SoftDelete == column.PGName && column.Nullable && column.GoType == model.TypeTime && !column.IsArray {
-		tags.AddTag("bun", ",soft_delete")
+		tags.AddTag(tagName, "soft_delete")
 	}
 
 	// ignore tag
@@ -271,4 +289,26 @@ func jsonType(mp map[string]string, schema, table, field string) (string, bool) 
 
 func tagName(options Options) string {
 	return "bun"
+}
+
+// tagSafeDefault reports whether a DEFAULT expression survives a struct tag:
+// a double quote ends the tag literal and a comma outside parentheses ends
+// the bun option
+func tagSafeDefault(def string) bool {
+	depth := 0
+	for _, r := range def {
+		switch r {
+		case '"':
+			return false
+		case '(':
+			depth++
+		case ')':
+			depth--
+		case ',':
+			if depth == 0 {
+				return false
+			}
+		}
+	}
+	return true
 }

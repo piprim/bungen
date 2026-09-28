@@ -67,7 +67,7 @@ func TestRelation_GoType(t *testing.T) {
 				TargetTable:   "users",
 				TargetColumns: []string{},
 			},
-			want: "User",
+			want: "Users",
 		},
 		{
 			name: "Should generate from non-countable",
@@ -85,7 +85,7 @@ func TestRelation_GoType(t *testing.T) {
 				TargetTable:   "user_orders",
 				TargetColumns: []string{},
 			},
-			want: "UserOrder",
+			want: "UserOrders",
 		},
 		{
 			name: "Should generate from camelCased",
@@ -94,7 +94,7 @@ func TestRelation_GoType(t *testing.T) {
 				TargetTable:   "userOrders",
 				TargetColumns: []string{},
 			},
-			want: "UserOrder",
+			want: "UserOrders",
 		},
 		{
 			name: "Should generate from plural in last place",
@@ -103,7 +103,7 @@ func TestRelation_GoType(t *testing.T) {
 				TargetTable:   "usersWithOrders",
 				TargetColumns: []string{},
 			},
-			want: "UsersWithOrder",
+			want: "UsersWithOrders",
 		},
 		{
 			name: "Should generate from abracadabra",
@@ -139,7 +139,7 @@ func TestRelation_GoType(t *testing.T) {
 				TargetTable:   "users",
 				TargetColumns: []string{},
 			},
-			want: "InformationSchemaUser",
+			want: "InformationSchemaUsers",
 		},
 		{
 			name: "Should generate without schema",
@@ -148,7 +148,7 @@ func TestRelation_GoType(t *testing.T) {
 				TargetTable:   "users",
 				TargetColumns: []string{},
 			},
-			want: "User",
+			want: "Users",
 		},
 	}
 	for _, tt := range tests {

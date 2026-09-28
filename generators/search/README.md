@@ -8,40 +8,48 @@ Use `search` sub-command to execute generator:
 
 First create your database and tables in it
 
-```bun
-create table "projects"
-(
-    "projectId" serial not null,
-    "name"      text   not null,
+```sql
+create extension if not exists "uuid-ossp";
 
-    primary key ("projectId")
+create table "project"
+(
+    "project_id" uuid not null default uuid_generate_v4(),
+    "code"       uuid,
+    "name"       text not null,
+
+    primary key ("project_id")
 );
 
-create table "users"
+create table "user"
 (
-    "userId"    serial      not null,
-    "email"     varchar(64) not null,
-    "activated" bool        not null default false,
-    "name"      varchar(128),
-    "countryId" integer,
+    "user_id"    serial      not null,
+    "email"      varchar(64) not null,
+    "activated"  bool        not null default false,
+    "name"       varchar(128),
+    "country_id" integer,
+    "avatar"     bytea       not null,
+    "avatar_alt" bytea,
+    "api_keys"   bytea[],
+    "logged_at"  timestamp,
 
-    primary key ("userId")
+    primary key ("user_id")
 );
 
 create schema "geo";
-create table geo."countries"
-(
-    "countryId" serial     not null,
-    "code"      varchar(3) not null,
-    "coords"    integer[],
 
-    primary key ("countryId")
+create table geo."country"
+(
+    "country_id" integer generated always as identity,
+    "code"       varchar(3) not null,
+    "coords"     integer[],
+
+    primary key ("country_id")
 );
 
-alter table "users"
+alter table "user"
     add constraint "fk_user_country"
-        foreign key ("countryId")
-            references geo."countries" ("countryId") on update restrict on delete restrict;
+        foreign key ("country_id")
+            references geo."country" ("country_id") on update restrict on delete restrict;
 ```
 
 ### Run generator
@@ -51,20 +59,23 @@ alter table "users"
 You should get following search structs on model package:
 
 ```go
+//nolint:all
 //lint:file-ignore U1000 ignore unused code, it's generated
-package model
+package readme
 
 import (
+	"time"
+
 	"github.com/uptrace/bun"
 )
 
-const condition =  "?.? = ?"
+const condition = "?.? = ?"
 
 // base filters
 type applier func(query bun.QueryBuilder) (bun.QueryBuilder, error)
 
 type search struct {
-	appliers[] applier
+	appliers []applier
 }
 
 func (s *search) apply(query bun.QueryBuilder) {
@@ -74,9 +85,9 @@ func (s *search) apply(query bun.QueryBuilder) {
 }
 
 func (s *search) where(query bun.QueryBuilder, table, field string, value interface{}) {
-	
+
 	query.Where(condition, bun.Ident(table), bun.Ident(field), value)
-	
+
 }
 
 func (s *search) WithApply(a applier) {
@@ -101,25 +112,27 @@ type Searcher interface {
 	WithApply(a applier)
 }
 
-
 type ProjectSearch struct {
-	search 
+	search
 
-	
-	ID *int
+	ID   *string
+	Code *string
 	Name *string
 }
 
-func (s *ProjectSearch) Apply(query bun.QueryBuilder) bun.QueryBuilder { 
-	if s.ID != nil {  
+func (s *ProjectSearch) Apply(query bun.QueryBuilder) bun.QueryBuilder {
+	if s.ID != nil {
 		s.where(query, Tables.Project.Alias, Columns.Project.ID, s.ID)
 	}
-	if s.Name != nil {  
+	if s.Code != nil {
+		s.where(query, Tables.Project.Alias, Columns.Project.Code, s.Code)
+	}
+	if s.Name != nil {
 		s.where(query, Tables.Project.Alias, Columns.Project.Name, s.Name)
 	}
 
 	s.apply(query)
-	
+
 	return query
 }
 
@@ -130,35 +143,46 @@ func (s *ProjectSearch) Q() applier {
 }
 
 type UserSearch struct {
-	search 
+	search
 
-	
-	ID *int
-	Email *string
+	ID        *int
+	Email     *string
 	Activated *bool
-	Name *string
+	Name      *string
 	CountryID *int
+	Avatar    *[]byte
+	AvatarAlt *[]byte
+	LoggedAt  *time.Time
 }
 
-func (s *UserSearch) Apply(query bun.QueryBuilder) bun.QueryBuilder { 
-	if s.ID != nil {  
+func (s *UserSearch) Apply(query bun.QueryBuilder) bun.QueryBuilder {
+	if s.ID != nil {
 		s.where(query, Tables.User.Alias, Columns.User.ID, s.ID)
 	}
-	if s.Email != nil {  
+	if s.Email != nil {
 		s.where(query, Tables.User.Alias, Columns.User.Email, s.Email)
 	}
-	if s.Activated != nil {  
+	if s.Activated != nil {
 		s.where(query, Tables.User.Alias, Columns.User.Activated, s.Activated)
 	}
-	if s.Name != nil {  
+	if s.Name != nil {
 		s.where(query, Tables.User.Alias, Columns.User.Name, s.Name)
 	}
-	if s.CountryID != nil {  
+	if s.CountryID != nil {
 		s.where(query, Tables.User.Alias, Columns.User.CountryID, s.CountryID)
+	}
+	if s.Avatar != nil {
+		s.where(query, Tables.User.Alias, Columns.User.Avatar, s.Avatar)
+	}
+	if s.AvatarAlt != nil {
+		s.where(query, Tables.User.Alias, Columns.User.AvatarAlt, s.AvatarAlt)
+	}
+	if s.LoggedAt != nil {
+		s.where(query, Tables.User.Alias, Columns.User.LoggedAt, s.LoggedAt)
 	}
 
 	s.apply(query)
-	
+
 	return query
 }
 
@@ -169,23 +193,22 @@ func (s *UserSearch) Q() applier {
 }
 
 type GeoCountrySearch struct {
-	search 
+	search
 
-	
-	ID *int
+	ID   *int
 	Code *string
 }
 
-func (s *GeoCountrySearch) Apply(query bun.QueryBuilder) bun.QueryBuilder { 
-	if s.ID != nil {  
+func (s *GeoCountrySearch) Apply(query bun.QueryBuilder) bun.QueryBuilder {
+	if s.ID != nil {
 		s.where(query, Tables.GeoCountry.Alias, Columns.GeoCountry.ID, s.ID)
 	}
-	if s.Code != nil {  
+	if s.Code != nil {
 		s.where(query, Tables.GeoCountry.Alias, Columns.GeoCountry.Code, s.Code)
 	}
 
 	s.apply(query)
-	
+
 	return query
 }
 
@@ -194,7 +217,6 @@ func (s *GeoCountrySearch) Q() applier {
 		return s.Apply(query), nil
 	}
 }
-
 ```
 
 ### Try it
@@ -214,7 +236,7 @@ func TestModel(t *testing.T) {
 	pgdb := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN("postgres://user:password@localhost:5432/yourdb")))
 	db := bun.NewDB(pgdb, pgdialect.New(), bun.WithDiscardUnknownColumns())
 
-	if _, err := db.Exec(`truncate table users; truncate table geo.countries cascade;`); err != nil {
+	if _, err := db.Exec(`truncate table "user"; truncate table geo.country cascade;`); err != nil {
 		panic(err)
 	}
 

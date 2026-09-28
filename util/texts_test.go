@@ -6,50 +6,6 @@ import (
 	"testing"
 )
 
-func TestSingular(t *testing.T) {
-	type args struct {
-		input string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "Should get normal singular",
-			args: args{"dogs"},
-			want: "dog",
-		},
-		{
-			name: "Should get irregular singular",
-			args: args{"children"},
-			want: "child",
-		},
-		{
-			name: "Should get non-countable",
-			args: args{"fish"},
-			want: "fish",
-		},
-		{
-			name: "Should get added non-countable",
-			args: args{"sms"},
-			want: "sms",
-		},
-		{
-			name: "Should ignore non plural",
-			args: args{"test"},
-			want: "test",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := Singular(tt.args.input); got != tt.want {
-				t.Errorf("Singular() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
 func TestEntityName(t *testing.T) {
 	type args struct {
 		input string
@@ -62,17 +18,17 @@ func TestEntityName(t *testing.T) {
 		{
 			name: "Should generate from simple word",
 			args: args{"users"},
-			want: "User",
+			want: "Users",
 		},
 		{
 			name: "Should generate from simple word end with es",
 			args: args{"companies"},
-			want: "Company",
+			want: "Companies",
 		},
 		{
 			name: "Should generate from simple word end with es",
 			args: args{"glasses"},
-			want: "Glass",
+			want: "Glasses",
 		},
 		{
 			name: "Should generate from non-countable",
@@ -82,17 +38,27 @@ func TestEntityName(t *testing.T) {
 		{
 			name: "Should generate from underscored",
 			args: args{"user_orders"},
-			want: "UserOrder",
+			want: "UserOrders",
 		},
 		{
 			name: "Should generate from camelCased",
 			args: args{"userOrders"},
-			want: "UserOrder",
+			want: "UserOrders",
 		},
 		{
-			name: "Should generate from plural in last place",
+			name: "Should keep plural as is",
 			args: args{"usersWithOrders"},
-			want: "UsersWithOrder",
+			want: "UsersWithOrders",
+		},
+		{
+			name: "Should keep singular table name",
+			args: args{"user"},
+			want: "User",
+		},
+		{
+			name: "Should not singularize data",
+			args: args{"data"},
+			want: "Data",
 		},
 		{
 			name: "Should generate from abracadabra",

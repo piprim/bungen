@@ -7,7 +7,9 @@ About:
 
 * Although this CLI is targeted for Bun, you should be aware that it's still compatible with Postgres only.
 
-* I've done a lot of plain code replacements: current tests are fine, but I haven't managed cases with multiple FK's, composite FK's. I do know that this tool needs to manage DEFAULT values e.g. `default:'SOME DEFAULT FUNCTION'` also, but this needs more affort (pull requests are welcome).
+* I've done a lot of plain code replacements: current tests are fine, but I haven't managed cases with multiple FK's, composite FK's (pull requests are welcome).
+
+* Generated tags follow what Bun expects: `table:` on `bun.BaseModel`, `notnull` for NOT NULL columns, `pk,autoincrement` for serial columns, `pk,autoincrement,identity` for identity columns and `default:<expr>` for other column defaults. Model names are the table names in CamelCase, without singularization.
 
 Requirements:
 - [bun](https://github.com/uptrace/bun)

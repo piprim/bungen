@@ -13,7 +13,7 @@ import (
 	"github.com/uptrace/bun/schema"
 )
 
-var formatter = schema.NewFormatter(pgdialect.New())
+var formatter = schema.NewQueryGen(pgdialect.New())
 
 func format(pattern string, values ...interface{}) string {
 	return formatter.FormatQuery(pattern, values...)
@@ -60,6 +60,7 @@ type column struct {
 	Dimensions int      `bun:"dims"`
 	Type       string   `bun:"type"`
 	Default    string   `bun:"def"`
+	IsIdentity bool     `bun:"is_identity"`
 	IsPK       bool     `bun:"is_pk"`
 	IsFK       bool     `bun:"is_fk"`
 	MaxLen     int      `bun:"len"`
@@ -67,7 +68,10 @@ type column struct {
 }
 
 func (c column) Column(useSQLNulls bool, customTypes model.CustomTypeMapping) model.Column {
-	return model.NewColumn(c.Name, c.Type, c.IsNullable, useSQLNulls, c.IsArray, c.Dimensions, c.IsPK, c.IsFK, c.MaxLen, c.Values, customTypes)
+	col := model.NewColumn(c.Name, c.Type, c.IsNullable, useSQLNulls, c.IsArray, c.Dimensions, c.IsPK, c.IsFK, c.MaxLen, c.Values, customTypes)
+	col.Default = c.Default
+	col.IsIdentity = c.IsIdentity
+	return col
 }
 
 // Store is database helper
@@ -255,6 +259,7 @@ func (s store) Columns(tables []table) ([]column, error) {
 		                else ltrim(c.udt_name, '_')
 		                end                         as type,
 		                c.column_default            as def,
+		                c.is_identity = 'YES'       as is_identity,
                         c.character_maximum_length  as len,
 						e.enum_values 				as enum
 		from information_schema.tables t

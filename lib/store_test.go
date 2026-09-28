@@ -2,6 +2,7 @@ package bungen
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/LdDl/bungen/model"
@@ -183,6 +184,7 @@ func Test_column_Column(t *testing.T) {
 		Dimensions int
 		Type       string
 		Default    string
+		IsIdentity bool
 		IsPK       bool
 		IsFK       bool
 		MaxLen     int
@@ -211,6 +213,22 @@ func Test_column_Column(t *testing.T) {
 			},
 			want: model.NewColumn("userId", model.TypePGInt8, false, false, false, 0, true, false, 0, []string{}, nil),
 		},
+		{
+			name: "Should copy default and identity",
+			fields: fields{
+				Name:       "created_at",
+				Type:       model.TypePGTimestamptz,
+				Default:    "now()",
+				IsIdentity: true,
+				Values:     []string{},
+			},
+			want: func() model.Column {
+				c := model.NewColumn("created_at", model.TypePGTimestamptz, false, false, false, 0, false, false, 0, []string{}, nil)
+				c.Default = "now()"
+				c.IsIdentity = true
+				return c
+			}(),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -223,6 +241,7 @@ func Test_column_Column(t *testing.T) {
 				Dimensions: tt.fields.Dimensions,
 				Type:       tt.fields.Type,
 				Default:    tt.fields.Default,
+				IsIdentity: tt.fields.IsIdentity,
 				IsPK:       tt.fields.IsPK,
 				IsFK:       tt.fields.IsFK,
 				MaxLen:     tt.fields.MaxLen,
@@ -256,7 +275,7 @@ func Test_store_Tables(t *testing.T) {
 	})
 
 	t.Run("Should get specific table from test DB", func(t *testing.T) {
-		tables, err := store.Tables([]string{"public.users"})
+		tables, err := store.Tables([]string{"public.user"})
 		if err != nil {
 			t.Errorf("get tables error = %v", err)
 			return
@@ -269,7 +288,7 @@ func Test_store_Tables(t *testing.T) {
 	})
 
 	t.Run("Should get specific & geo tables from test DB", func(t *testing.T) {
-		tables, err := store.Tables([]string{"public.users", "geo.*"})
+		tables, err := store.Tables([]string{"public.user", "geo.*"})
 		if err != nil {
 			t.Errorf("get tables error = %v", err)
 			return
@@ -366,7 +385,7 @@ func Test_store_Columns(t *testing.T) {
 	})
 
 	t.Run("Should detect PK and FK flags for selected tables only", func(t *testing.T) {
-		columns, err := store.Columns([]table{{Schema: "public", Name: "users"}})
+		columns, err := store.Columns([]table{{Schema: "public", Name: "user"}})
 		if err != nil {
 			t.Errorf("get columns error = %v", err)
 			return
@@ -374,20 +393,63 @@ func Test_store_Columns(t *testing.T) {
 
 		flags := map[string][2]bool{}
 		for _, c := range columns {
-			if c.Table != "users" {
-				t.Errorf("unexpected table %q in columns of users", c.Table)
+			if c.Table != "user" {
+				t.Errorf("unexpected table %q in columns of user", c.Table)
 			}
 			flags[c.Name] = [2]bool{c.IsPK, c.IsFK}
 		}
 
-		if got := flags["userId"]; got != [2]bool{true, false} {
-			t.Errorf("users.userId (is_pk, is_fk) = %v, want %v", got, [2]bool{true, false})
+		if got := flags["user_id"]; got != [2]bool{true, false} {
+			t.Errorf("user.user_id (is_pk, is_fk) = %v, want %v", got, [2]bool{true, false})
 		}
-		if got := flags["countryId"]; got != [2]bool{false, true} {
-			t.Errorf("users.countryId (is_pk, is_fk) = %v, want %v", got, [2]bool{false, true})
+		if got := flags["country_id"]; got != [2]bool{false, true} {
+			t.Errorf("user.country_id (is_pk, is_fk) = %v, want %v", got, [2]bool{false, true})
 		}
 		if got := flags["email"]; got != [2]bool{false, false} {
-			t.Errorf("users.email (is_pk, is_fk) = %v, want %v", got, [2]bool{false, false})
+			t.Errorf("user.email (is_pk, is_fk) = %v, want %v", got, [2]bool{false, false})
+		}
+	})
+
+	t.Run("Should read column defaults", func(t *testing.T) {
+		columns, err := store.Columns([]table{{Schema: "public", Name: "user"}})
+		if err != nil {
+			t.Errorf("get columns error = %v", err)
+			return
+		}
+
+		defaults := map[string]string{}
+		for _, c := range columns {
+			defaults[c.Name] = c.Default
+		}
+
+		if got := defaults["activated"]; got != "false" {
+			t.Errorf("user.activated default = %q, want %q", got, "false")
+		}
+		if got := defaults["user_id"]; !strings.HasPrefix(got, "nextval(") {
+			t.Errorf("user.user_id default = %q, want nextval(...)", got)
+		}
+		if got := defaults["email"]; got != "" {
+			t.Errorf("user.email default = %q, want empty", got)
+		}
+	})
+
+	t.Run("Should detect identity columns", func(t *testing.T) {
+		columns, err := store.Columns([]table{{Schema: "geo", Name: "country"}})
+		if err != nil {
+			t.Errorf("get columns error = %v", err)
+			return
+		}
+
+		identity := map[string]bool{}
+		for _, c := range columns {
+			identity[c.Name] = c.IsIdentity
+		}
+
+		if !identity["country_id"] {
+			t.Errorf("country.country_id is_identity = false, want true")
+		}
+		if identity["code"] {
+			t.Errorf("country.code is_identity = true, want false")
 		}
 	})
 }

@@ -8,40 +8,48 @@ Use `validation` sub-command to execute generator:
 
 First create your database and tables in it
 
-```bun
-create table "projects"
-(
-    "projectId" serial not null,
-    "name"      text   not null,
+```sql
+create extension if not exists "uuid-ossp";
 
-    primary key ("projectId")
+create table "project"
+(
+    "project_id" uuid not null default uuid_generate_v4(),
+    "code"       uuid,
+    "name"       text not null,
+
+    primary key ("project_id")
 );
 
-create table "users"
+create table "user"
 (
-    "userId"    serial      not null,
-    "email"     varchar(64) not null,
-    "activated" bool        not null default false,
-    "name"      varchar(128),
-    "countryId" integer,
+    "user_id"    serial      not null,
+    "email"      varchar(64) not null,
+    "activated"  bool        not null default false,
+    "name"       varchar(128),
+    "country_id" integer,
+    "avatar"     bytea       not null,
+    "avatar_alt" bytea,
+    "api_keys"   bytea[],
+    "logged_at"  timestamp,
 
-    primary key ("userId")
+    primary key ("user_id")
 );
 
 create schema "geo";
-create table geo."countries"
-(
-    "countryId" serial     not null,
-    "code"      varchar(3) not null,
-    "coords"    integer[],
 
-    primary key ("countryId")
+create table geo."country"
+(
+    "country_id" integer generated always as identity,
+    "code"       varchar(3) not null,
+    "coords"     integer[],
+
+    primary key ("country_id")
 );
 
-alter table "users"
+alter table "user"
     add constraint "fk_user_country"
-        foreign key ("countryId")
-            references geo."countries" ("countryId") on update restrict on delete restrict;
+        foreign key ("country_id")
+            references geo."country" ("country_id") on update restrict on delete restrict;
 ```
 
 ### Run generator
@@ -51,11 +59,12 @@ alter table "users"
 You should get following functions on model package:
 
 ```go
+//nolint:all
 //lint:file-ignore U1000 ignore unused code, it's generated
-package model
+package readme
 
 import (
-    "unicode/utf8"
+	"unicode/utf8"
 )
 
 const (
@@ -64,18 +73,17 @@ const (
 	ErrWrongValue = "value"
 )
 
-
 func (m User) Validate() (errors map[string]string, valid bool) {
 	errors = map[string]string{}
-	
+
 	if utf8.RuneCountInString(m.Email) > 64 {
 		errors[Columns.User.Email] = ErrMaxLength
 	}
-	
+
 	if m.Name != nil && utf8.RuneCountInString(*m.Name) > 128 {
 		errors[Columns.User.Name] = ErrMaxLength
 	}
-	
+
 	if m.CountryID != nil && *m.CountryID == 0 {
 		errors[Columns.User.CountryID] = ErrEmptyValue
 	}
@@ -92,8 +100,6 @@ func (m GeoCountry) Validate() (errors map[string]string, valid bool) {
 
 	return errors, len(errors) == 0
 }
-
-
 ```
 
 ### Try it

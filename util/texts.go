@@ -8,7 +8,6 @@ import (
 	"unicode/utf8"
 
 	"github.com/fatih/camelcase"
-	"github.com/jinzhu/inflection"
 )
 
 const (
@@ -23,15 +22,6 @@ const (
 	// Rel if suffix for Relation
 	Rel = "Rel"
 )
-
-func init() {
-	inflection.AddUncountable("sms", "mms", "rls")
-}
-
-// Singular makes singular of plural english word
-func Singular(s string) string {
-	return inflection.Singular(s)
-}
 
 // IsUpper check rune for upper case
 func IsUpper(c byte) bool {
@@ -130,19 +120,7 @@ func PackageFromOutput(output string) string {
 
 // EntityName gets string usable as struct name
 func EntityName(s string) string {
-	splitted := camelcase.Split(CamelCased(Sanitize(s)))
-
-	ln := len(splitted) - 1
-	for i := ln; i >= 0; i-- {
-		split := splitted[i]
-		singular := Singular(split)
-		if strings.ToLower(singular) != strings.ToLower(split) {
-			splitted[i] = strings.Title(singular)
-			break
-		}
-	}
-
-	return strings.Join(splitted, "")
+	return strings.Join(camelcase.Split(CamelCased(Sanitize(s))), "")
 }
 
 // ColumnName gets string usable as struct field name
