@@ -38,6 +38,16 @@ func TestRelation_GoName(t *testing.T) {
 			},
 			want: "CityLocation",
 		},
+		{
+			name: "Should fall back to the target name when the key is the bare id column",
+			fields: fields{
+				SourceColumns: []string{"id"},
+				TargetSchema:  util.PublicSchema,
+				TargetTable:   "mandat_registre",
+				TargetColumns: []string{"id"},
+			},
+			want: "MandatRegistre",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

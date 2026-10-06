@@ -33,10 +33,16 @@ func NewRelation(sourceColumns []string, targetSchema, targetTable string, targe
 		typ = util.CamelCased(targetSchema) + typ
 	}
 
+	// a key on the bare "id" column leaves nothing once the ID suffix is gone
+	goName := strings.Join(names, "")
+	if goName == "" {
+		goName = typ
+	}
+
 	return Relation{
 		PKFields: targetColumns,
 		FKFields: sourceColumns,
-		GoName:   strings.Join(names, ""),
+		GoName:   goName,
 
 		TargetPGName:     targetTable,
 		TargetPGSchema:   targetSchema,
