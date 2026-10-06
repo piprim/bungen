@@ -14,6 +14,7 @@ const (
 	softDelete = "soft-delete"
 	json       = "json"
 	jsonTag    = "json-tag"
+	tmplFile   = "template"
 )
 
 // CreateCommand creates generator command
@@ -56,6 +57,7 @@ func (g *Basic) AddFlags(command *cobra.Command) {
 
 	flags.StringToStringP(json, "j", map[string]string{"*": "map[string]interface{}"}, "type for json columns\nuse format: table.column=type, separate by comma\nuse asterisk as wildcard in table name")
 	flags.Bool(jsonTag, false, "add json tag to annotations")
+	flags.String(tmplFile, "", "template file to use instead of the built-in one")
 }
 
 // ReadFlags read flags from command
@@ -93,6 +95,10 @@ func (g *Basic) ReadFlags(command *cobra.Command) error {
 		return err
 	}
 
+	if g.options.Template, err = flags.GetString(tmplFile); err != nil {
+		return err
+	}
+
 	// setting defaults
 	g.options.Def()
 
@@ -101,13 +107,18 @@ func (g *Basic) ReadFlags(command *cobra.Command) error {
 
 // Generate runs whole generation process
 func (g *Basic) Generate() error {
+	tmpl, err := base.ReadTemplate(g.options.Template, Template)
+	if err != nil {
+		return err
+	}
+
 	return base.NewGenerator(g.options.URL).
 		Generate(
 			g.options.Tables,
 			g.options.FollowFKs,
 			g.options.UseSQLNulls,
 			g.options.Output,
-			Template,
+			tmpl,
 			g.Packer(),
 			g.options.CustomTypes,
 		)

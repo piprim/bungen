@@ -35,6 +35,9 @@ type Options struct {
 
 	// Add json tag to models
 	AddJSONTag bool
+
+	// Template is the path of a template file used instead of the built-in one
+	Template string
 }
 
 // Def fills default values of an options

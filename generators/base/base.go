@@ -226,6 +226,21 @@ func (g Generator) GenerateFromEntities(entities []model.Entity, output, tmpl st
 	return nil
 }
 
+// ReadTemplate returns the content of the template file at path,
+// or def when path is empty
+func ReadTemplate(path, def string) (string, error) {
+	if path == "" {
+		return def, nil
+	}
+
+	content, err := os.ReadFile(path)
+	if err != nil {
+		return "", fmt.Errorf("reading template error: %w", err)
+	}
+
+	return string(content), nil
+}
+
 // CreateCommand creates cobra command
 func CreateCommand(name, description string, generator Gen) *cobra.Command {
 	command := &cobra.Command{

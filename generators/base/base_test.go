@@ -51,3 +51,37 @@ func TestGenerator_GenerateFromEntities(t *testing.T) {
 		}
 	})
 }
+
+func TestReadTemplate(t *testing.T) {
+	t.Run("Should return the default when no path is set", func(t *testing.T) {
+		got, err := ReadTemplate("", "built-in")
+		if err != nil {
+			t.Fatalf("ReadTemplate() error = %v", err)
+		}
+		if got != "built-in" {
+			t.Errorf("ReadTemplate() = %q, want %q", got, "built-in")
+		}
+	})
+
+	t.Run("Should return the file content when a path is set", func(t *testing.T) {
+		file := filepath.Join(t.TempDir(), "model.tmpl")
+		if err := os.WriteFile(file, []byte("package {{.Package}}\n"), 0o644); err != nil {
+			t.Fatalf("write template = %v", err)
+		}
+
+		got, err := ReadTemplate(file, "built-in")
+		if err != nil {
+			t.Fatalf("ReadTemplate() error = %v", err)
+		}
+		if want := "package {{.Package}}\n"; got != want {
+			t.Errorf("ReadTemplate() = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("Should return error when the file does not exist", func(t *testing.T) {
+		_, err := ReadTemplate(filepath.Join(t.TempDir(), "missing.tmpl"), "built-in")
+		if err == nil {
+			t.Fatalf("ReadTemplate() error = nil, want a read error")
+		}
+	})
+}
