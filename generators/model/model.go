@@ -212,8 +212,8 @@ type TemplateRelation struct {
 func NewTemplateRelation(relation model.Relation, options Options) TemplateRelation {
 	comment := ""
 	tagName := tagName(options)
-	tags := util.NewAnnotation().AddTag("bun", "join:"+strings.Join(relation.FKFields, ","))
-	tags.AddTag("bun", "rel:belongs-to")
+	tags := util.NewAnnotation().AddTag(tagName, "join:"+strings.Join(relation.FKFields, ","))
+	tags.AddTag(tagName, "rel:belongs-to")
 
 	if len(relation.FKFields) > 1 {
 		comment = "// unsupported"
@@ -238,8 +238,8 @@ func NewTemplateRelation(relation model.Relation, options Options) TemplateRelat
 func NewTemplateRelationWithJoin(relation model.Relation, relFK, relPK string, options Options) TemplateRelation {
 	comment := ""
 	tagName := tagName(options)
-	tags := util.NewAnnotation().AddTag("bun", fmt.Sprintf("join:%s=%s", relFK, relPK))
-	tags.AddTag("bun", "rel:belongs-to")
+	tags := util.NewAnnotation().AddTag(tagName, fmt.Sprintf("join:%s=%s", relFK, relPK))
+	tags.AddTag(tagName, "rel:belongs-to")
 
 	if len(relation.FKFields) > 1 {
 		comment = "// unsupported"
@@ -287,8 +287,15 @@ func jsonType(mp map[string]string, schema, table, field string) (string, bool) 
 	return "", false
 }
 
+// defaultTagName is the struct tag key bun reads
+const defaultTagName = "bun"
+
 func tagName(options Options) string {
-	return "bun"
+	if options.TagName != "" {
+		return options.TagName
+	}
+
+	return defaultTagName
 }
 
 // tagSafeDefault reports whether a DEFAULT expression survives a struct tag:

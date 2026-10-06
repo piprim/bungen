@@ -138,3 +138,47 @@ func TestNewTemplatePackage_Imports(t *testing.T) {
 		}
 	})
 }
+
+func TestTagNameOption(t *testing.T) {
+	options := Options{TagName: "boa"}
+
+	t.Run("table tag uses the given key", func(t *testing.T) {
+		entity := model.NewEntity("geo", "country", nil, nil)
+
+		got := string(NewTemplateEntity(entity, options).Tag)
+		want := "`boa:\"table:geo.country,alias:t\"`"
+		if got != want {
+			t.Errorf("tag = %s, want %s", got, want)
+		}
+	})
+
+	t.Run("column tag uses the given key", func(t *testing.T) {
+		column := model.NewColumn("email", model.TypePGText, false, false, false, 0, false, false, 0, nil, nil)
+
+		got := string(NewTemplateColumn(model.Entity{}, column, options).Tag)
+		want := "`boa:\"email,notnull\"`"
+		if got != want {
+			t.Errorf("tag = %s, want %s", got, want)
+		}
+	})
+
+	t.Run("relation tag uses the given key", func(t *testing.T) {
+		relation := model.NewRelation([]string{"country_id"}, "geo", "country", []string{"id"})
+
+		got := string(NewTemplateRelation(relation, options).Tag)
+		want := "`boa:\"join:country_id,rel:belongs-to\"`"
+		if got != want {
+			t.Errorf("tag = %s, want %s", got, want)
+		}
+	})
+
+	t.Run("relation tag with join uses the given key", func(t *testing.T) {
+		relation := model.NewRelation([]string{"country_id"}, "geo", "country", []string{"id"})
+
+		got := string(NewTemplateRelationWithJoin(relation, "country_id", "id", options).Tag)
+		want := "`boa:\"join:country_id=id,rel:belongs-to\"`"
+		if got != want {
+			t.Errorf("tag = %s, want %s", got, want)
+		}
+	})
+}

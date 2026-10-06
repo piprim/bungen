@@ -15,6 +15,7 @@ const (
 	json       = "json"
 	jsonTag    = "json-tag"
 	tmplFile   = "template"
+	tagKey     = "tag"
 )
 
 // CreateCommand creates generator command
@@ -58,6 +59,7 @@ func (g *Basic) AddFlags(command *cobra.Command) {
 	flags.StringToStringP(json, "j", map[string]string{"*": "map[string]interface{}"}, "type for json columns\nuse format: table.column=type, separate by comma\nuse asterisk as wildcard in table name")
 	flags.Bool(jsonTag, false, "add json tag to annotations")
 	flags.String(tmplFile, "", "template file to use instead of the built-in one")
+	flags.String(tagKey, defaultTagName, "struct tag key of the generated tags")
 }
 
 // ReadFlags read flags from command
@@ -96,6 +98,10 @@ func (g *Basic) ReadFlags(command *cobra.Command) error {
 	}
 
 	if g.options.Template, err = flags.GetString(tmplFile); err != nil {
+		return err
+	}
+
+	if g.options.TagName, err = flags.GetString(tagKey); err != nil {
 		return err
 	}
 

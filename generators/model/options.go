@@ -38,6 +38,9 @@ type Options struct {
 
 	// Template is the path of a template file used instead of the built-in one
 	Template string
+
+	// TagName is the struct tag key of the generated tags, "bun" when empty
+	TagName string
 }
 
 // Def fills default values of an options
