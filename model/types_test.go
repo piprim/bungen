@@ -212,11 +212,10 @@ func Test_goSlice(t *testing.T) {
 
 func Test_goNullable(t *testing.T) {
 	tests := []struct {
-		name          string
-		pgType        string
-		avoidPointers bool
-		want          string
-		wantErr       bool
+		name    string
+		pgType  string
+		want    string
+		wantErr bool
 	}{
 		{
 			name:   "Should generate int2 type",
@@ -313,40 +312,10 @@ func Test_goNullable(t *testing.T) {
 			pgType:  "unknown",
 			wantErr: true,
 		},
-		{
-			name:          "Should generate int2 type avoiding pointers to sql.NullInt64",
-			pgType:        TypePGInt2,
-			avoidPointers: true,
-			want:          "sql.NullInt64",
-		},
-		{
-			name:          "Should generate varchar type avoiding pointers to sql.NullInt64",
-			pgType:        TypePGVarchar,
-			avoidPointers: true,
-			want:          "sql.NullString",
-		},
-		{
-			name:          "Should generate uuid type avoiding pointers to sql.NullInt64",
-			pgType:        TypePGUuid,
-			avoidPointers: true,
-			want:          "sql.NullString",
-		},
-		{
-			name:          "Should generate bool type avoiding pointers to sql.NullBool",
-			pgType:        TypePGBool,
-			avoidPointers: true,
-			want:          "sql.NullBool",
-		},
-		{
-			name:          "Should generate float64 type avoiding pointers to sql.NullFloat64",
-			pgType:        TypePGFloat8,
-			avoidPointers: true,
-			want:          "sql.NullFloat64",
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := GoNullable(tt.pgType, tt.avoidPointers, CustomTypeMapping{})
+			got, err := GoNullable(tt.pgType, CustomTypeMapping{})
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GoNullable() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -360,9 +329,7 @@ func Test_goNullable(t *testing.T) {
 
 func Test_goImport(t *testing.T) {
 	type args struct {
-		pgTypes       []string
-		nullable      bool
-		avoidPointers bool
+		pgTypes []string
 	}
 	tests := []struct {
 		name string
@@ -411,24 +378,11 @@ func Test_goImport(t *testing.T) {
 			want: "",
 		},
 		{
-			name: "Should generate sql import for nullable simple types avoiding pointer",
-			args: args{
-				pgTypes: []string{
-					TypePGInt2, TypePGInt4, TypePGInt8, TypePGNumeric, TypePGFloat4, TypePGFloat8, TypePGBool, TypePGText, TypePGVarchar, TypePGUuid, TypePGBpchar,
-				},
-				nullable:      true,
-				avoidPointers: true,
-			},
-			want: "database/sql",
-		},
-		{
 			name: "Should not generate sql import for nullable simple types",
 			args: args{
 				pgTypes: []string{
 					TypePGInt2, TypePGInt4, TypePGInt8, TypePGNumeric, TypePGFloat4, TypePGFloat8, TypePGBool, TypePGText, TypePGVarchar, TypePGUuid, TypePGBpchar,
 				},
-				nullable:      true,
-				avoidPointers: false,
 			},
 			want: "",
 		},
@@ -438,37 +392,14 @@ func Test_goImport(t *testing.T) {
 				pgTypes: []string{
 					TypePGTimestamp, TypePGTimestamptz, TypePGDate, TypePGTime, TypePGTimetz,
 				},
-				nullable: true,
 			},
 			want: "time",
-		},
-		{
-			name: "Should generate bun import for nullable date time types",
-			args: args{
-				pgTypes: []string{
-					TypePGTimestamp, TypePGTimestamptz, TypePGDate, TypePGTime, TypePGTimetz,
-				},
-				nullable:      true,
-				avoidPointers: true,
-			},
-			want: "github.com/uptrace/bun",
-		},
-		{
-			name: "Should generate bun import for nullable date time types",
-			args: args{
-				pgTypes: []string{
-					TypePGTimestamp, TypePGTimestamptz, TypePGDate, TypePGTime, TypePGTimetz,
-				},
-				nullable:      true,
-				avoidPointers: true,
-			},
-			want: "github.com/uptrace/bun",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for _, pgType := range tt.args.pgTypes {
-				if got := GoImport(pgType, tt.args.nullable, tt.args.avoidPointers); got != tt.want {
+				if got := GoImport(pgType); got != tt.want {
 					t.Errorf("GoImport() = %v, want %v", got, tt.want)
 				}
 			}

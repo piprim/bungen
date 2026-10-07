@@ -42,7 +42,7 @@ func (g *Bungen) Connect() error {
 }
 
 // Read reads database and gets entities with columns and relations
-func (g *Bungen) Read(selected []string, followFK, useSQLNulls bool, customTypes model.CustomTypeMapping) ([]model.Entity, error) {
+func (g *Bungen) Read(selected []string, followFK, presence bool, customTypes model.CustomTypeMapping) ([]model.Entity, error) {
 	if err := g.Connect(); err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (g *Bungen) Read(selected []string, followFK, useSQLNulls bool, customTypes
 
 	for _, c := range columns {
 		if i, ok := index[util.Join(c.Schema, c.Table)]; ok {
-			entities[i].AddColumn(c.Column(useSQLNulls, customTypes))
+			entities[i].AddColumn(c.Column(presence, customTypes))
 		}
 	}
 

@@ -21,8 +21,8 @@ type Options struct {
 	// Soft delete column
 	SoftDelete string
 
-	// use sql.Null... instead of pointers
-	UseSQLNulls bool
+	// Presence maps nullable columns to presence.Of[T] and json columns to json.RawMessage
+	Presence bool
 
 	// Do not generate alias tag
 	NoAlias bool

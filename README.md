@@ -42,8 +42,9 @@ so a running Docker daemon is all that is required:
 go test ./...
 ```
 
-Without Docker, point the tests at an existing database that already has
-`test_db.sql` loaded:
+Without Docker the tests that need the database are skipped and the others run.
+Set `BUNGEN_TEST_REQUIRE_DB=1` (for CI) to fail instead of skipping. To use an
+existing database that already has `test_db.sql` loaded:
 
 ```shell
 psql "postgres://some_user:some_password@localhost:5432/some_db?sslmode=disable" -f test_db.sql

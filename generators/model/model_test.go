@@ -1,6 +1,7 @@
 package model
 
 import (
+	"reflect"
 	"testing"
 
 	"github.com/LdDl/bungen/generators/base"
@@ -179,6 +180,75 @@ func TestTagNameOption(t *testing.T) {
 		want := "`boa:\"join:country_id=id,rel:belongs-to\"`"
 		if got != want {
 			t.Errorf("tag = %s, want %s", got, want)
+		}
+	})
+}
+
+func TestNewTemplateColumn_PresenceJSON(t *testing.T) {
+	entity := model.NewEntity("public", "dossier", nil, nil)
+	nullable := model.NewColumn("prefs", model.TypePGJSONB, true, true, false, 0, false, false, 0, nil, nil)
+	notNull := model.NewColumn("payload", model.TypePGJSONB, false, true, false, 0, false, false, 0, nil, nil)
+
+	t.Run("without override the type is presence.Of[json.RawMessage]", func(t *testing.T) {
+		c := NewTemplateColumn(entity, nullable, Options{Presence: true})
+		if c.Type != "presence.Of[json.RawMessage]" {
+			t.Errorf("Type = %s", c.Type)
+		}
+	})
+
+	t.Run("an override of a nullable column is wrapped in presence.Of", func(t *testing.T) {
+		c := NewTemplateColumn(entity, nullable, Options{Presence: true, JSONTypes: map[string]string{"dossier.prefs": "Prefs"}})
+		if c.Type != "presence.Of[Prefs]" {
+			t.Errorf("Type = %s", c.Type)
+		}
+	})
+
+	t.Run("an override drops the encoding/json import and keeps presence", func(t *testing.T) {
+		c := NewTemplateColumn(entity, nullable, Options{Presence: true, JSONTypes: map[string]string{"dossier.prefs": "Prefs"}})
+		if !reflect.DeepEqual(c.Imports, []string{model.PresenceImport}) {
+			t.Errorf("Imports = %v", c.Imports)
+		}
+	})
+
+	t.Run("an override of a not null column is used as is", func(t *testing.T) {
+		c := NewTemplateColumn(entity, notNull, Options{Presence: true, JSONTypes: map[string]string{"dossier.payload": "Payload"}})
+		if c.Type != "Payload" {
+			t.Errorf("Type = %s", c.Type)
+		}
+		if len(c.Imports) != 0 {
+			t.Errorf("Imports = %v", c.Imports)
+		}
+	})
+
+	t.Run("without presence an override is used as is", func(t *testing.T) {
+		c := NewTemplateColumn(entity, nullable, Options{JSONTypes: map[string]string{"dossier.prefs": "Prefs"}})
+		if c.Type != "Prefs" {
+			t.Errorf("Type = %s", c.Type)
+		}
+	})
+}
+
+func TestNewTemplatePackage_ImportsFollowOverrides(t *testing.T) {
+	col := model.NewColumn("prefs", model.TypePGJSONB, true, true, false, 0, false, false, 0, nil, nil)
+	entity := model.NewEntity("public", "dossier", []model.Column{col}, nil)
+
+	t.Run("encoding/json is not imported when every json column is overridden", func(t *testing.T) {
+		pkg := NewTemplatePackage([]model.Entity{entity}, Options{Presence: true, JSONTypes: map[string]string{"*": "Prefs"}})
+		for _, imp := range pkg.Imports {
+			if imp == "encoding/json" {
+				t.Errorf("Imports = %v, encoding/json is unused", pkg.Imports)
+			}
+		}
+	})
+
+	t.Run("presence is imported", func(t *testing.T) {
+		pkg := NewTemplatePackage([]model.Entity{entity}, Options{Presence: true})
+		found := false
+		for _, imp := range pkg.Imports {
+			found = found || imp == model.PresenceImport
+		}
+		if !found {
+			t.Errorf("Imports = %v, want %s", pkg.Imports, model.PresenceImport)
 		}
 	})
 }

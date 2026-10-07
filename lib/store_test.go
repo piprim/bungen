@@ -9,8 +9,9 @@ import (
 	"github.com/uptrace/bun"
 )
 
-func prepareStore() (*store, error) {
-	db, err := newDatabase(prepareReq())
+func prepareStore(t testing.TB) (*store, error) {
+	t.Helper()
+	db, err := newDatabase(prepareReq(t))
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +256,7 @@ func Test_column_Column(t *testing.T) {
 }
 
 func Test_store_Tables(t *testing.T) {
-	store, err := prepareStore()
+	store, err := prepareStore(t)
 	if err != nil {
 		t.Errorf("prepare Store error = %v", err)
 		return
@@ -302,7 +303,7 @@ func Test_store_Tables(t *testing.T) {
 }
 
 func Test_store_Relations(t *testing.T) {
-	store, err := prepareStore()
+	store, err := prepareStore(t)
 	if err != nil {
 		t.Errorf("prepare Store error = %v", err)
 		return
@@ -329,7 +330,7 @@ func Test_store_Relations(t *testing.T) {
 }
 
 func Test_store_Schemas(t *testing.T) {
-	store, err := prepareStore()
+	store, err := prepareStore(t)
 	if err != nil {
 		t.Errorf("prepare Store error = %v", err)
 		return
@@ -359,7 +360,7 @@ func Test_store_Schemas(t *testing.T) {
 }
 
 func Test_store_Columns(t *testing.T) {
-	store, err := prepareStore()
+	store, err := prepareStore(t)
 	if err != nil {
 		t.Errorf("prepare Store error = %v", err)
 		return

@@ -34,14 +34,16 @@ type Column struct {
 	// Relation *Relation
 	Relation *columnRelWrap
 
-	Import string
+	// Imports are the packages the Type needs
+	Imports []string
 
 	MaxLen int
 	Values []string
 }
 
-// NewColumn creates Column from Postgres info
-func NewColumn(pgName string, pgType string, nullable, sqlNulls, array bool, dims int, pk, fk bool, len int, values []string, customTypes CustomTypeMapping) Column {
+// NewColumn creates Column from Postgres info. With presence, nullable
+// columns are presence.Of[T] and json columns json.RawMessage.
+func NewColumn(pgName string, pgType string, nullable, presence, array bool, dims int, pk, fk bool, len int, values []string, customTypes CustomTypeMapping) Column {
 	var (
 		err error
 		ok  bool
@@ -66,25 +68,33 @@ func NewColumn(pgName string, pgType string, nullable, sqlNulls, array bool, dim
 
 	if column.GoType, ok = customTypes.GoType(pgType); !ok || column.GoType == "" {
 		if column.GoType, err = GoType(pgType); err != nil {
-			column.GoType = "interface{}"
+			column.GoType = TypeInterface
 		}
+	}
+
+	imp, ok := customTypes.GoImport(pgType)
+	if !ok {
+		imp = GoImport(pgType)
+	}
+	if imp != "" {
+		column.Imports = append(column.Imports, imp)
 	}
 
 	switch {
 	case column.IsArray:
 		column.Type, err = GoSlice(pgType, dims)
+	case presence:
+		var extra []string
+		column.Type, extra = GoPresence(pgType, column.GoType, nullable)
+		column.Imports = append(column.Imports, extra...)
 	case column.Nullable:
-		column.Type, err = GoNullable(pgType, sqlNulls, customTypes)
+		column.Type, err = GoNullable(pgType, customTypes)
 	default:
 		column.Type = column.GoType
 	}
 
 	if err != nil {
 		column.Type = column.GoType
-	}
-
-	if column.Import, ok = customTypes.GoImport(pgType); !ok {
-		column.Import = GoImport(pgType, nullable, sqlNulls)
 	}
 
 	return column

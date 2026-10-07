@@ -1,0 +1,123 @@
+//nolint:all
+//lint:file-ignore U1000 ignore unused code, it's generated
+package model
+
+import (
+	"github.com/google/uuid"
+	"github.com/pivaldi/presence/v2"
+	"github.com/uptrace/bun"
+	"time"
+)
+
+var Columns = struct {
+	Project struct {
+		ID, Code, Name string
+	}
+	User struct {
+		ID, Email, Activated, Name, CountryID, Avatar, AvatarAlt, ApiKeys, LoggedAt string
+
+		Country string
+	}
+	GeoCountry struct {
+		ID, Code, Coords string
+	}
+}{
+	Project: struct {
+		ID, Code, Name string
+	}{
+		ID:   "project_id",
+		Code: "code",
+		Name: "name",
+	},
+	User: struct {
+		ID, Email, Activated, Name, CountryID, Avatar, AvatarAlt, ApiKeys, LoggedAt string
+
+		Country string
+	}{
+		ID:        "user_id",
+		Email:     "email",
+		Activated: "activated",
+		Name:      "name",
+		CountryID: "country_id",
+		Avatar:    "avatar",
+		AvatarAlt: "avatar_alt",
+		ApiKeys:   "api_keys",
+		LoggedAt:  "logged_at",
+
+		Country: "Country",
+	},
+	GeoCountry: struct {
+		ID, Code, Coords string
+	}{
+		ID:     "country_id",
+		Code:   "code",
+		Coords: "coords",
+	},
+}
+
+var Tables = struct {
+	Project struct {
+		Name, Alias string
+	}
+	User struct {
+		Name, Alias string
+	}
+	GeoCountry struct {
+		Name, Alias string
+	}
+}{
+	Project: struct {
+		Name, Alias string
+	}{
+		Name:  "project",
+		Alias: "t",
+	},
+	User: struct {
+		Name, Alias string
+	}{
+		Name:  "user",
+		Alias: "t",
+	},
+	GeoCountry: struct {
+		Name, Alias string
+	}{
+		Name:  "geo.country",
+		Alias: "t",
+	},
+}
+
+type Project struct {
+	bun.BaseModel `bun:"table:project,alias:t"`
+
+	ID   uuid.UUID              `bun:"project_id,pk,type:uuid,default:uuid_generate_v4()"`
+	Code presence.Of[uuid.UUID] `bun:"code,type:uuid"`
+	Name string                 `bun:"name,notnull"`
+}
+
+type User struct {
+	bun.BaseModel `bun:"table:user,alias:t"`
+
+	ID        int                    `bun:"user_id,pk,autoincrement"`
+	Email     string                 `bun:"email,notnull"`
+	Activated bool                   `bun:"activated,notnull,default:false"`
+	Name      presence.Of[string]    `bun:"name"`
+	CountryID presence.Of[int]       `bun:"country_id"`
+	Avatar    []byte                 `bun:"avatar,notnull"`
+	AvatarAlt []byte                 `bun:"avatar_alt"`
+	ApiKeys   [][]byte               `bun:"api_keys,array"`
+	LoggedAt  presence.Of[time.Time] `bun:"logged_at"`
+
+	Country *GeoCountry `bun:"join:country_id=country_id,rel:belongs-to"`
+}
+
+type GeoCountry struct {
+	bun.BaseModel `bun:"table:geo.country,alias:t"`
+
+	ID     int    `bun:"country_id,pk,autoincrement,identity"`
+	Code   string `bun:"code,notnull"`
+	Coords []int  `bun:"coords,array"`
+}
+
+/* Common ORM queries */
+
+// Just a wrapper around database connection

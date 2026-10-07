@@ -22,6 +22,11 @@ import (
 // EnvDSN is the environment variable that bypasses the container.
 const EnvDSN = "BUNGEN_TEST_DSN"
 
+// EnvRequireDB, when set, makes Run fail instead of skipping the database
+// tests when no database is available; for CI, where a skipped suite must
+// not pass.
+const EnvRequireDB = "BUNGEN_TEST_REQUIRE_DB"
+
 const (
 	image    = "postgres:17-alpine"
 	dbName   = "some_db"
@@ -29,11 +34,20 @@ const (
 	password = "some_password"
 )
 
-var dsn string
+var (
+	dsn string
+	// unavailable is why no database could be started; set by Run.
+	unavailable error
+)
 
-// DSN returns the connection URL of the test database.
-// It is only valid inside tests run through Run.
-func DSN() string {
+// DSN returns the connection URL of the test database. It skips t when Run
+// could not start a database, so the tests of a package that do not need one
+// still run without Docker.
+func DSN(t testing.TB) string {
+	t.Helper()
+	if unavailable != nil {
+		t.Skipf("testdb: %v", unavailable)
+	}
 	if dsn == "" {
 		panic("testdb: DSN called before Run; add a TestMain that calls testdb.Run")
 	}
@@ -41,7 +55,9 @@ func DSN() string {
 }
 
 // Run starts the test database, runs the package's tests and stops the
-// database. It is meant to be called from TestMain:
+// database. Without Docker it still runs the tests and those that call DSN
+// skip, unless EnvRequireDB is set, in which case it fails. It is meant to be
+// called from TestMain:
 //
 //	func TestMain(m *testing.M) { os.Exit(testdb.Run(m)) }
 func Run(m *testing.M) int {
@@ -55,7 +71,12 @@ func Run(m *testing.M) int {
 	container, err := start(ctx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "testdb: %v\n", err)
-		return 1
+		if os.Getenv(EnvRequireDB) != "" {
+			return 1
+		}
+		// Tests that call DSN skip with this reason; the others run.
+		unavailable = err
+		return m.Run()
 	}
 
 	code := m.Run()

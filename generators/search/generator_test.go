@@ -15,7 +15,7 @@ func TestGenerator_Generate(t *testing.T) {
 	generator := New()
 
 	generator.options.Def()
-	generator.options.URL = testdb.DSN()
+	generator.options.URL = testdb.DSN(t)
 	generator.options.Output = path.Join(t.TempDir(), "search_test.go")
 	generator.options.FollowFKs = true
 	generator.options.CustomTypes.Add(model.TypePGUuid, "uuid.UUID", "github.com/google/uuid")

@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"html/template"
+	"slices"
 	"strings"
 
 	"github.com/LdDl/bungen/model"
@@ -30,13 +31,16 @@ func NewTemplatePackage(entities []model.Entity, options Options) TemplatePackag
 		imports.Add("context")
 	}
 
+	// Imports come from the template columns, whose types are final: a -j
+	// override may have replaced json.RawMessage and its encoding/json import.
 	models := make([]TemplateEntity, len(entities))
 	for i, entity := range entities {
-		for _, imp := range entity.Imports {
-			imports.Add(imp)
-		}
-
 		models[i] = NewTemplateEntity(entity, options)
+		for _, column := range models[i].Columns {
+			for _, imp := range column.Imports {
+				imports.Add(imp)
+			}
+		}
 	}
 
 	return TemplatePackage{
@@ -134,6 +138,14 @@ func NewTemplateColumn(entity model.Entity, column model.Column, options Options
 	if column.PGType == model.TypePGJSON || column.PGType == model.TypePGJSONB {
 		if typ, ok := jsonType(options.JSONTypes, entity.PGSchema, entity.PGName, column.PGName); ok {
 			column.Type = typ
+			if options.Presence {
+				column.Imports = slices.DeleteFunc(slices.Clone(column.Imports), func(imp string) bool {
+					return imp == "encoding/json"
+				})
+				if column.Nullable {
+					column.Type = fmt.Sprintf("presence.Of[%s]", typ)
+				}
+			}
 		}
 	}
 

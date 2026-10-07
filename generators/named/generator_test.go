@@ -14,7 +14,7 @@ func TestGenerator_Generate(t *testing.T) {
 	options := generator.Options()
 
 	options.Def()
-	options.URL = testdb.DSN()
+	options.URL = testdb.DSN(t)
 	options.Output = path.Join(t.TempDir(), "model_test.go")
 	options.FollowFKs = true
 

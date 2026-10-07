@@ -16,6 +16,7 @@ const (
 	jsonTag    = "json-tag"
 	tmplFile   = "template"
 	tagKey     = "tag"
+	presence   = "presence"
 )
 
 // CreateCommand creates generator command
@@ -60,6 +61,7 @@ func (g *Basic) AddFlags(command *cobra.Command) {
 	flags.Bool(jsonTag, false, "add json tag to annotations")
 	flags.String(tmplFile, "", "template file to use instead of the built-in one")
 	flags.String(tagKey, defaultTagName, "struct tag key of the generated tags")
+	flags.Bool(presence, false, "nullable columns as presence.Of[T] (github.com/pivaldi/presence/v2) and json columns as json.RawMessage")
 }
 
 // ReadFlags read flags from command
@@ -105,6 +107,16 @@ func (g *Basic) ReadFlags(command *cobra.Command) error {
 		return err
 	}
 
+	if g.options.Presence, err = flags.GetBool(presence); err != nil {
+		return err
+	}
+
+	// The built-in `-j '*=map[string]interface{}'` is the pointer-era default;
+	// with presence the default json type is json.RawMessage.
+	if g.options.Presence && !flags.Changed(json) {
+		g.options.JSONTypes = nil
+	}
+
 	// setting defaults
 	g.options.Def()
 
@@ -122,7 +134,7 @@ func (g *Basic) Generate() error {
 		Generate(
 			g.options.Tables,
 			g.options.FollowFKs,
-			g.options.UseSQLNulls,
+			g.options.Presence,
 			g.options.Output,
 			tmpl,
 			g.Packer(),

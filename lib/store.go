@@ -67,8 +67,8 @@ type column struct {
 	Values     []string `bun:"enum,array"`
 }
 
-func (c column) Column(useSQLNulls bool, customTypes model.CustomTypeMapping) model.Column {
-	col := model.NewColumn(c.Name, c.Type, c.IsNullable, useSQLNulls, c.IsArray, c.Dimensions, c.IsPK, c.IsFK, c.MaxLen, c.Values, customTypes)
+func (c column) Column(presence bool, customTypes model.CustomTypeMapping) model.Column {
+	col := model.NewColumn(c.Name, c.Type, c.IsNullable, presence, c.IsArray, c.Dimensions, c.IsPK, c.IsFK, c.MaxLen, c.Values, customTypes)
 	col.Default = c.Default
 	col.IsIdentity = c.IsIdentity
 	return col

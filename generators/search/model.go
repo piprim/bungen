@@ -80,8 +80,8 @@ func NewTemplateEntity(entity model.Entity, options Options) TemplateEntity {
 		}
 
 		columns = append(columns, NewTemplateColumn(entity, column, options))
-		if column.Import != "" {
-			imports.Add(column.Import)
+		for _, imp := range column.Imports {
+			imports.Add(imp)
 		}
 	}
 

@@ -85,6 +85,11 @@ const (
 
 	// TypeInterface is a go type
 	TypeInterface = "interface{}"
+	// TypeJSONRaw is a go type
+	TypeJSONRaw = "json.RawMessage"
+
+	// PresenceImport is the package of presence.Of
+	PresenceImport = "github.com/pivaldi/presence/v2"
 )
 
 // GoType generates simple go type from Postgres type
@@ -146,24 +151,9 @@ func GoSlice(pgType string, dimensions int) (string, error) {
 	return typ, nil
 }
 
-// GoNullable generates all go types from Postgres type with pointer
-func GoNullable(pgType string, useSQLNull bool, customTypes CustomTypeMapping) (string, error) {
-	// avoiding pointers with sql.Null... types
-	if useSQLNull {
-		switch pgType {
-		case TypePGInt2, TypePGInt4, TypePGInt8:
-			return "sql.NullInt64", nil
-		case TypePGNumeric, TypePGFloat4, TypePGFloat8:
-			return "sql.NullFloat64", nil
-		case TypePGBool:
-			return "sql.NullBool", nil
-		case TypePGText, TypePGVarchar, TypePGUuid, TypePGBpchar, TypePGPoint:
-			return "sql.NullString", nil
-		case TypePGTimestamp, TypePGTimestamptz, TypePGDate, TypePGTime, TypePGTimetz:
-			return "bun.NullTime", nil
-		}
-	}
-
+// GoNullable generates the go type of a nullable column: a pointer, except
+// for hstore, json and bytea whose nil value is already NULL
+func GoNullable(pgType string, customTypes CustomTypeMapping) (string, error) {
 	if typ, ok := customTypes.GoType(pgType); ok && typ != "" {
 		return fmt.Sprintf("*%s", typ), nil
 	}
@@ -175,27 +165,43 @@ func GoNullable(pgType string, useSQLNull bool, customTypes CustomTypeMapping) (
 
 	switch pgType {
 	case TypePGHstore, TypePGJSON, TypePGJSONB, TypePGBytea:
-		// hstore & json & bytea types without pointers
 		return typ, nil
 	default:
 		return fmt.Sprintf("*%s", typ), nil
 	}
 }
 
-// GoImport generates import from go type
-func GoImport(pgType string, nullable, useSQLNull bool) string {
-	if nullable && useSQLNull {
-		switch pgType {
-		case TypePGInt2, TypePGInt4, TypePGInt8,
-			TypePGNumeric, TypePGFloat4, TypePGFloat8,
-			TypePGBool,
-			TypePGText, TypePGVarchar, TypePGUuid, TypePGBpchar, TypePGPoint:
-			return "database/sql"
-		case TypePGTimestamp, TypePGTimestamptz, TypePGDate, TypePGTime, TypePGTimetz:
-			return "github.com/uptrace/bun"
+// GoPresence generates the go type of a column when presence is enabled: json
+// columns hold json.RawMessage and nullable columns are wrapped in
+// presence.Of, except hstore and bytea whose nil value is already NULL,
+// interval which presence cannot encode (it would store a Duration's
+// nanoseconds as seconds) and so keeps its pointer, and unsupported types. It
+// returns the imports the type needs besides the one GoImport gives.
+func GoPresence(pgType, goType string, nullable bool) (string, []string) {
+	var imports []string
+
+	switch pgType {
+	case TypePGJSON, TypePGJSONB:
+		goType = TypeJSONRaw
+		imports = append(imports, "encoding/json")
+	case TypePGHstore, TypePGBytea:
+		return goType, nil
+	case TypePGInterval:
+		if nullable {
+			return "*" + goType, nil
 		}
+		return goType, nil
 	}
 
+	if !nullable || goType == TypeInterface {
+		return goType, imports
+	}
+
+	return fmt.Sprintf("presence.Of[%s]", goType), append(imports, PresenceImport)
+}
+
+// GoImport generates the import of the plain go type of a Postgres type
+func GoImport(pgType string) string {
 	switch pgType {
 	case TypePGInet, TypePGCidr:
 		return "net"

@@ -189,8 +189,8 @@ func ReadFlags(command *cobra.Command) (conn, output, pkg string, tables []strin
 }
 
 // Generate runs whole generation process
-func (g Generator) Generate(tables []string, followFKs, useSQLNulls bool, output, tmpl string, packer Packer, customTypes model.CustomTypeMapping) error {
-	entities, err := g.Read(tables, followFKs, useSQLNulls, customTypes)
+func (g Generator) Generate(tables []string, followFKs, presence bool, output, tmpl string, packer Packer, customTypes model.CustomTypeMapping) error {
+	entities, err := g.Read(tables, followFKs, presence, customTypes)
 	if err != nil {
 		return fmt.Errorf("read database error: %w", err)
 	}

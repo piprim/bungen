@@ -75,7 +75,7 @@ func (e *Entity) AddColumn(column Column) {
 
 	e.Columns = append(e.Columns, column)
 
-	if imp := column.Import; imp != "" {
+	for _, imp := range column.Imports {
 		if _, ok := e.impIndex[imp]; !ok {
 			e.impIndex[imp] = struct{}{}
 			e.Imports = append(e.Imports, imp)
