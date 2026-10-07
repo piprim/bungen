@@ -2,6 +2,7 @@ package model
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/LdDl/bungen/generators/base"
@@ -207,6 +208,13 @@ func TestNewTemplateColumn_PresenceJSON(t *testing.T) {
 		c := NewTemplateColumn(entity, nullable, Options{Presence: true, JSONTypes: map[string]string{"dossier.prefs": "Prefs"}})
 		if !reflect.DeepEqual(c.Imports, []string{model.PresenceImport}) {
 			t.Errorf("Imports = %v", c.Imports)
+		}
+	})
+
+	t.Run("an override that uses json keeps the encoding/json import", func(t *testing.T) {
+		c := NewTemplateColumn(entity, nullable, Options{Presence: true, JSONTypes: map[string]string{"dossier.prefs": "json.RawMessage"}})
+		if !slices.Contains(c.Imports, "encoding/json") {
+			t.Errorf("Imports = %v, want encoding/json", c.Imports)
 		}
 	})
 

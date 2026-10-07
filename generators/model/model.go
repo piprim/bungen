@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"html/template"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -121,6 +122,9 @@ func NewTemplateEntity(entity model.Entity, options Options) TemplateEntity {
 	}
 }
 
+// usesJSONPkg matches an override type that still needs encoding/json, like json.RawMessage.
+var usesJSONPkg = regexp.MustCompile(`\bjson\.`)
+
 // TemplateColumn stores column info
 type TemplateColumn struct {
 	model.Column
@@ -139,9 +143,11 @@ func NewTemplateColumn(entity model.Entity, column model.Column, options Options
 		if typ, ok := jsonType(options.JSONTypes, entity.PGSchema, entity.PGName, column.PGName); ok {
 			column.Type = typ
 			if options.Presence {
-				column.Imports = slices.DeleteFunc(slices.Clone(column.Imports), func(imp string) bool {
-					return imp == "encoding/json"
-				})
+				if !usesJSONPkg.MatchString(typ) {
+					column.Imports = slices.DeleteFunc(slices.Clone(column.Imports), func(imp string) bool {
+						return imp == "encoding/json"
+					})
+				}
 				if column.Nullable {
 					column.Type = fmt.Sprintf("presence.Of[%s]", typ)
 				}
