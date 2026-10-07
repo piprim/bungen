@@ -172,7 +172,7 @@ func GoNullable(pgType string, customTypes CustomTypeMapping) (string, error) {
 }
 
 // GoPresence generates the go type of a column when presence is enabled: json
-// columns hold json.RawMessage and nullable columns are wrapped in
+// columns hold json.RawMessage unless a custom type maps them, nullable columns are wrapped in
 // presence.Of, except hstore and bytea whose nil value is already NULL,
 // interval which presence cannot encode (it would store a Duration's
 // nanoseconds as seconds) and so keeps its pointer, and unsupported types. It
@@ -182,8 +182,11 @@ func GoPresence(pgType, goType string, nullable bool) (string, []string) {
 
 	switch pgType {
 	case TypePGJSON, TypePGJSONB:
-		goType = TypeJSONRaw
-		imports = append(imports, "encoding/json")
+		// a custom type already replaced the built-in map; keep it
+		if goType == TypeMapInterface {
+			goType = TypeJSONRaw
+			imports = append(imports, "encoding/json")
+		}
 	case TypePGHstore, TypePGBytea:
 		return goType, nil
 	case TypePGInterval:

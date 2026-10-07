@@ -241,3 +241,35 @@ func TestColumn_Imports(t *testing.T) {
 		})
 	}
 }
+
+func TestColumn_PresenceCustomJSON(t *testing.T) {
+	custom := CustomTypeMapping{TypePGJSONB: {PGType: TypePGJSONB, GoType: "model.Prefs", GoImport: "src/model"}}
+	nullable := NewColumn("test", TypePGJSONB, true, true, false, 0, false, false, 0, nil, custom)
+	notNull := NewColumn("test", TypePGJSONB, false, true, false, 0, false, false, 0, nil, custom)
+
+	t.Run("nullable custom jsonb is wrapped in presence.Of", func(t *testing.T) {
+		if nullable.Type != "presence.Of[model.Prefs]" {
+			t.Errorf("Column.Type = %v", nullable.Type)
+		}
+	})
+
+	t.Run("nullable custom jsonb imports the custom package and presence", func(t *testing.T) {
+		want := []string{"src/model", PresenceImport}
+		if !reflect.DeepEqual(nullable.Imports, want) {
+			t.Errorf("Column.Imports = %v, want %v", nullable.Imports, want)
+		}
+	})
+
+	t.Run("not null custom jsonb is used as is", func(t *testing.T) {
+		if notNull.Type != "model.Prefs" {
+			t.Errorf("Column.Type = %v", notNull.Type)
+		}
+	})
+
+	t.Run("not null custom jsonb imports the custom package only", func(t *testing.T) {
+		want := []string{"src/model"}
+		if !reflect.DeepEqual(notNull.Imports, want) {
+			t.Errorf("Column.Imports = %v, want %v", notNull.Imports, want)
+		}
+	})
+}
