@@ -3,7 +3,6 @@ package cmd
 import (
 	"os"
 
-	"github.com/LdDl/bungen/dump"
 	"github.com/LdDl/bungen/generators/model"
 	"github.com/LdDl/bungen/generators/named"
 	"github.com/LdDl/bungen/generators/search"
@@ -34,7 +33,6 @@ func init() {
 		search.CreateCommand(),
 		validate.CreateCommand(),
 		named.CreateCommand(),
-		dump.CreateCommand(),
 	)
 }
 
