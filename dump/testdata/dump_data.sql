@@ -22,3 +22,4 @@ INSERT INTO a_status (a_id, status_code, note) VALUES
     (5, 'new', NULL),
     (6, 'lost', NULL);
 INSERT INTO "Select" (a_id) VALUES (1), (1), (2);                              -- 1, 2, 3
+INSERT INTO hub_tag (hub_id, status_id) VALUES (1, 1), (2, 1), (3, 2);

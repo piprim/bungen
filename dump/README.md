@@ -33,14 +33,16 @@ children_per_parent: 20     # children fetched per parent row and FK; default 20
 exclude:                    # never entered by child expansion; still dumped as parents
   - "*.*_tracking_*"
   - phoning_history
-attach:                     # "owned" child tables: all their rows referencing any
-  - acq_recherche           # selected row come along, wherever that row comes from
-  - acq_recherche_rel_geographic_zone
+attach:                     # "owned" children: every row of table referencing a
+  - table: acq_recherche    # selected row of to comes along, wherever that row
+    to: personne_acq        # comes from, through the FKs from table to to only
+  - table: acq_recherche_rel_geographic_zone
+    to: acq_recherche
 ```
 
-`attach` never selects other rows of an attached table, and attached rows do
-not expand into non-attached children. A table both attached and excluded is
-an error.
+An attach rule never follows the attached table's other FKs, and attached
+rows do not expand into non-attached children. A rule without a FK from
+`table` to `to`, or whose `table` is excluded, is an error.
 
 SQL in the config is inserted verbatim. A `query` on an inheritance parent
 must use `FROM ONLY` itself.

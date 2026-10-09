@@ -132,8 +132,10 @@ seeds:
     all_children: [acq_rel_dossier]
   - table: mandat
 attach:
-  - acq_recherche
-  - "erp.*_zone"
+  - table: acq_recherche
+    to: personne_acq
+  - table: erp.zone
+    to: erp.recherche
 `))
 	if err != nil {
 		t.Fatalf("ParseConfig: %v", err)
@@ -157,28 +159,38 @@ attach:
 		}
 	})
 
-	t.Run("attach matches a bare public name", func(t *testing.T) {
-		if !cfg.attached("public.acq_recherche") {
-			t.Error("public.acq_recherche is not attached")
+	t.Run("a FK from the attached table to its parent is followed", func(t *testing.T) {
+		fk := foreignKey{Child: "public.acq_recherche", Parent: "public.personne_acq"}
+		if !cfg.attachedVia(fk) {
+			t.Error("acq_recherche -> personne_acq is not attached")
 		}
 	})
 
-	t.Run("attach matches a glob", func(t *testing.T) {
-		if !cfg.attached("erp.geographic_zone") {
-			t.Error("erp.geographic_zone is not attached")
+	t.Run("a FK from the attached table to another parent is not followed", func(t *testing.T) {
+		fk := foreignKey{Child: "public.acq_recherche", Parent: "public.mailing_arret_cause"}
+		if cfg.attachedVia(fk) {
+			t.Error("acq_recherche -> mailing_arret_cause is attached")
 		}
 	})
 
-	t.Run("other tables are not attached", func(t *testing.T) {
-		if cfg.attached("public.dossier") {
-			t.Error("public.dossier is attached")
+	t.Run("explicit schemas are kept", func(t *testing.T) {
+		fk := foreignKey{Child: "erp.zone", Parent: "erp.recherche"}
+		if !cfg.attachedVia(fk) {
+			t.Error("erp.zone -> erp.recherche is not attached")
 		}
 	})
 
-	t.Run("a bad attach pattern is an error", func(t *testing.T) {
-		_, err := ParseConfig(strings.NewReader("seeds:\n  - table: a\nattach: [\"[\"]\n"))
-		if err == nil || !strings.Contains(err.Error(), "attach") {
-			t.Fatalf("err = %v, want an attach error", err)
+	t.Run("an attach rule without to is an error", func(t *testing.T) {
+		_, err := ParseConfig(strings.NewReader("seeds:\n  - table: a\nattach:\n  - table: b\n"))
+		if err == nil || !strings.Contains(err.Error(), "attach 1: table and to are required") {
+			t.Fatalf("err = %v, want attach 1: table and to are required", err)
+		}
+	})
+
+	t.Run("an attach rule without table is an error", func(t *testing.T) {
+		_, err := ParseConfig(strings.NewReader("seeds:\n  - table: a\nattach:\n  - to: b\n"))
+		if err == nil || !strings.Contains(err.Error(), "attach 1: table and to are required") {
+			t.Fatalf("err = %v, want attach 1: table and to are required", err)
 		}
 	})
 

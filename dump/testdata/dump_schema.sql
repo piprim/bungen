@@ -61,6 +61,12 @@ CREATE TABLE "Select" (
     a_id int REFERENCES a (id)
 );
 
+-- A link table with two parents, like acq_recherche_rel_geographic_zone.
+CREATE TABLE hub_tag (
+    hub_id    int NOT NULL REFERENCES hub (id),
+    status_id int NOT NULL REFERENCES status (id)
+);
+
 CREATE TABLE audit (
     id  serial PRIMARY KEY,
     msg text NOT NULL

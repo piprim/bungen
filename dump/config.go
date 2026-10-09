@@ -20,10 +20,18 @@ const (
 
 // Config is the dump configuration file.
 type Config struct {
-	Seeds             []Seed   `yaml:"seeds"`
-	ChildrenPerParent *int     `yaml:"children_per_parent"`
-	Exclude           []string `yaml:"exclude"`
-	Attach            []string `yaml:"attach"`
+	Seeds             []Seed       `yaml:"seeds"`
+	ChildrenPerParent *int         `yaml:"children_per_parent"`
+	Exclude           []string     `yaml:"exclude"`
+	Attach            []AttachRule `yaml:"attach"`
+}
+
+// AttachRule makes Table an "owned" child of To: every row of Table
+// referencing a selected row of To is selected too, through the FKs from
+// Table to To only.
+type AttachRule struct {
+	Table string `yaml:"table"`
+	To    string `yaml:"to"`
 }
 
 // Seed selects the rows a dump starts from. The seed table is aliased t in
@@ -67,8 +75,10 @@ func (c *Config) validate() error {
 	if err := validPatterns("exclude", c.Exclude); err != nil {
 		return err
 	}
-	if err := validPatterns("attach", c.Attach); err != nil {
-		return err
+	for i, a := range c.Attach {
+		if a.Table == "" || a.To == "" {
+			return fmt.Errorf("attach %d: table and to are required", i+1)
+		}
 	}
 	for i, s := range c.Seeds {
 		if err := s.validate(); err != nil {
@@ -155,10 +165,15 @@ func (c *Config) excluded(key string) bool {
 	return matchAny(c.Exclude, key)
 }
 
-// attached reports whether the rows of the table key referencing a selected
-// row are selected too, wherever that row comes from.
-func (c *Config) attached(key string) bool {
-	return matchAny(c.Attach, key)
+// attachedVia reports whether fk is the path of an attach rule: the rows of
+// its child table referencing a selected row of its parent are selected too.
+func (c *Config) attachedVia(fk foreignKey) bool {
+	for _, a := range c.Attach {
+		if qualify(a.Table) == fk.Child && qualify(a.To) == fk.Parent {
+			return true
+		}
+	}
+	return false
 }
 
 // matchAny reports whether key matches one of patterns, a bare pattern

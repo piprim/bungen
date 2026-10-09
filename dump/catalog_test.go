@@ -12,7 +12,7 @@ func TestLoadCatalog(t *testing.T) {
 	t.Run("lists every table, sorted", func(t *testing.T) {
 		want := []string{
 			"public.Select", "public.a", "public.a_status", "public.audit", "public.b", "public.hub",
-			"public.hub_log", "public.node", "public.person", "public.person_acq", "public.person_emp", "public.status",
+			"public.hub_log", "public.hub_tag", "public.node", "public.person", "public.person_acq", "public.person_emp", "public.status",
 		}
 		if !slices.Equal(cat.Keys, want) {
 			t.Errorf("Keys = %v, want %v", cat.Keys, want)

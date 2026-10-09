@@ -291,7 +291,9 @@ seeds:
   - table: a
     where: "id = 3"
     child_depth: 0
-attach: [hub_log]
+attach:
+  - table: hub_log
+    to: hub
 `)
 		assertValues(t, db, rows, "public.hub", "t.id", "1")
 		// Only hub 1's log rows (hub_id = 1 + g % 3 = 1), uncapped: all 10.
@@ -307,13 +309,47 @@ seeds:
   - table: node
     where: "id = 1"
     child_depth: 0
-attach: [node]
+attach:
+  - table: node
+    to: node
 `)
 		assertValues(t, db, rows, "public.node", "t.id", "1", "2", "3", "4")
 	})
 
+	t.Run("a link table is attached through the named parent only", func(t *testing.T) {
+		rows := runWalk(t, db, `
+seeds:
+  - table: a
+    where: "id = 3"
+    child_depth: 0
+attach:
+  - table: hub_tag
+    to: hub
+`)
+		// hub 1 brings its tag (1, 1), whose status 1 comes in as a parent.
+		// Status 1 must not bring hub 2's tag (2, 1).
+		assertValues(t, db, rows, "public.hub_tag", "t.hub_id || ':' || t.status_id", "1:1")
+		assertValues(t, db, rows, "public.hub", "t.id", "1")
+	})
+
+	t.Run("an attach rule without a matching FK is an error", func(t *testing.T) {
+		cfg := mustConfig(t, "seeds:\n  - table: a\nattach:\n  - table: hub_log\n    to: status\n")
+		ctx := context.Background()
+		err := withSnapshot(ctx, db, func(conn bun.Conn) error {
+			cat, err := loadCatalog(ctx, conn.Conn)
+			if err != nil {
+				return err
+			}
+			_, err = walk(ctx, conn.Conn, cat, cfg)
+			return err
+		})
+		if err == nil || !strings.Contains(err.Error(), "no foreign key from public.hub_log to public.status") {
+			t.Fatalf("err = %v, want no foreign key from public.hub_log to public.status", err)
+		}
+	})
+
 	t.Run("a table both attached and excluded is an error", func(t *testing.T) {
-		cfg := mustConfig(t, "seeds:\n  - table: a\nattach: [hub_log]\nexclude: [\"hub_*\"]\n")
+		cfg := mustConfig(t, "seeds:\n  - table: a\nattach:\n  - table: hub_log\n    to: hub\nexclude: [\"hub_*\"]\n")
 		ctx := context.Background()
 		err := withSnapshot(ctx, db, func(conn bun.Conn) error {
 			cat, err := loadCatalog(ctx, conn.Conn)

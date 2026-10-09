@@ -50,19 +50,22 @@ func (r rowSet) summary(w io.Writer) {
 }
 
 // walk selects the seed rows, expands each seed to its children up to its
-// depth, then adds every row the selection references, and the rows of
-// attached tables referencing it, until nothing is new. Only seed rows expand
-// to children; a row is expanded at most once, by the first seed that reaches
-// it.
+// depth, then adds every row the selection references, and the rows attached
+// to it by an attach rule, until nothing is new. Only seed rows expand to
+// children; a row is expanded at most once, by the first seed that reaches it.
 func walk(ctx context.Context, conn *sql.Conn, cat *catalog, cfg *Config) (rowSet, error) {
 	for _, s := range cfg.Seeds {
 		if cat.Tables[s.key()] == nil {
 			return nil, fmt.Errorf("dump: seed table %s not found (or owned by an extension)", s.key())
 		}
 	}
-	for _, key := range cat.Keys {
-		if cfg.attached(key) && cfg.excluded(key) {
-			return nil, fmt.Errorf("dump: table %s is both attached and excluded", key)
+	for _, a := range cfg.Attach {
+		child, parent := qualify(a.Table), qualify(a.To)
+		if !slices.ContainsFunc(cat.FKs, func(fk foreignKey) bool { return fk.Child == child && fk.Parent == parent }) {
+			return nil, fmt.Errorf("dump: attach: no foreign key from %s to %s", child, parent)
+		}
+		if cfg.excluded(child) {
+			return nil, fmt.Errorf("dump: table %s is both attached and excluded", child)
 		}
 	}
 
@@ -107,7 +110,7 @@ func expandSeed(ctx context.Context, conn *sql.Conn, cat *catalog, cfg *Config, 
 }
 
 // closeSelection adds, for every selected row, the rows it references and
-// all the rows of attached tables referencing it, until nothing is new. Sets
+// all the rows attached to it by an attach rule, until nothing is new. Sets
 // only grow and are finite, so FK cycles and self-FKs terminate.
 func closeSelection(ctx context.Context, conn *sql.Conn, cat *catalog, cfg *Config, rows rowSet) error {
 	work := map[string][]string{}
@@ -131,7 +134,7 @@ func closeSelection(ctx context.Context, conn *sql.Conn, cat *catalog, cfg *Conf
 				add(fk.Parent, found)
 			}
 			for _, fk := range cat.children(key) {
-				if !cfg.attached(fk.Child) {
+				if !cfg.attachedVia(fk) {
 					continue
 				}
 				query := childSQL(cat.Tables[fk.Parent], cat.Tables[fk.Child], fk, 0)
